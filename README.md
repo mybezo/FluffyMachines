@@ -1,82 +1,164 @@
 # FluffyMachines
 
-These are some thrown together machines made by me for fun :)
-I pretty much add whatever comes to mind, is suggested by me, or other addons don't want to add.
+[![Java CI](https://github.com/mybezo/FluffyMachines/actions/workflows/maven.yml/badge.svg)](https://github.com/mybezo/FluffyMachines/actions/workflows/maven.yml)
+[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](LICENSE.txt)
 
-Custom item settings can be changed in `plugins/Slimefun/Items.yml`
+A [Slimefun](https://github.com/Slimefun/Slimefun4) addon full of handy machines, tools and storage: auto crafters,
+bottomless barrels, portable chargers, warp pads and more.
 
-<!-- Modifications in this fork:
-- The Crank Generator can have a usage rate limit enabled (if you used translated build #4 or earlier, make sure to update your config file; deleting the old config file is recommended) -->
+> Originally made by [NCBPFluffyBear](https://github.com/NCBPFluffyBear/FluffyMachines) ("These are some thrown
+> together machines made by me for fun :)"). This fork is based on the
+> [SlimefunGuguProject](https://github.com/SlimefunGuguProject/FluffyMachines) version, which runs on Slimefun's
+> database storage, and is fully translated back to English.
+
+## Contents
+
+- [Requirements](#requirements)
+- [Download](#download)
+- [Features](#features)
+- [Configuration](#configuration)
+- [Commands and permissions](#commands-and-permissions)
+- [FAQ](#faq)
+- [Building from source](#building-from-source)
+- [Credits and license](#credits-and-license)
+
+## Requirements
+
+| Dependency | Required | Notes |
+|---|---|---|
+| [Slimefun4 (SlimefunGuguProject)](https://github.com/SlimefunGuguProject/Slimefun4) | Yes | Uses the database storage API, so the official Slimefun build will not work |
+| GuizhanLibPlugin | Yes | |
+| [mcMMO](https://github.com/mcMMO-Dev/mcMMO) | No | Explosive tools can give mcMMO XP |
+| NoCheatPlus | No | Compatibility hooks |
 
 ## Download
 
 [Download FluffyMachines](https://resources.guizhanss.com/plugin/FluffyMachines)
 
-## Machines
-**Auto Crafting Table**: Automatically crafts vanilla recipes
+Drop the jar into your `plugins` folder together with the required plugins above, then restart the server.
 
-**Auto Armor Forge**: Automatically crafts Armor Forge recipes
+## Features
 
-**Auto Magic Workbench**: Automatically crafts Magic Workbench recipes
+### Machines
 
-**Auto Ancient Altar**: Automatically crafts Ancient Altar recipes
+| Machine | What it does |
+|---|---|
+| **Auto Crafting Table** | Automatically crafts vanilla recipes |
+| **Auto Enhanced Crafting Table** | Automatically crafts Enhanced Crafting Table recipes |
+| **Auto Armor Forge** | Automatically crafts Armor Forge recipes |
+| **Auto Magic Workbench** | Automatically crafts Magic Workbench recipes |
+| **Auto Ancient Altar** | Automatically crafts Ancient Altar recipes |
+| **Auto Table Saw** | Automatically crafts Table Saw recipes |
+| **Smart Factory** | All-in-one machine that crafts resources straight from raw materials |
+| **Water Sprinkler** | Electric sprinkler that grows crops in a 2 block radius |
+| **Backpack Loader** | Moves items from its inventory into a backpack |
+| **Backpack Unloader** | Empties a backpack into its inventory |
+| **Advanced Auto Disenchanter** + **Ancient Book** | Removes one chosen enchantment from an item. Needs an Ancient Book per use |
+| **Electric Dust Fabricator** | Grinds, pans and washes cobblestone into sifted ore in one machine |
+| **Electric Dust Recycler** | Turns eight of the same dust back into one sifted ore |
+| **Advanced Charging Bench** + **ACB Upgrade Card** | A charging bench that can be upgraded with upgrade cards (up to tier 100) |
 
-**Auto Table Saw**: Automatically crafts Table Saw recipes
+### Generators
 
-**Water Sprinkler**: Electric sprinkler that grows crops in a 2 block radius
+| Generator | What it does |
+|---|---|
+| **Crank Generator** | Multiblock that generates power every time you click its lever |
 
-**Backpack Loader**: Moves items from inventory to backpack
+### Tools
 
-**Backpack Unloader**: Empties backpack into inventory
+| Tool | What it does |
+|---|---|
+| **Upgraded Explosive Pickaxe / Shovel** | 5x5 versions of the explosive tools that break the blocks in front of you. Can trigger other plugins listening to block breaks (e.g. mcMMO XP); toggle this in `Items.yml` |
+| **Upgraded Lumber Axe** | Breaks every log within 2 blocks of each other, great for acacia, jungle and custom trees. Right click to strip logs |
+| **Scythe** | Breaks 5 crops per swing |
+| **Fluffy Wrench** (Reinforced / Carbonado) | Quickly breaks Slimefun cargo nodes and energy components |
+| **Paxel** | A pickaxe, axe and shovel in one tool |
+| **Cargo Manipulator** | Copy, paste and clear cargo node settings |
+| **Watering Can** | Waters plants and saplings to speed up their growth |
+| **Dolly** | Picks up chests (single or double) with their contents and places them somewhere else |
+| **Portable Charger** (5 tiers) | Handheld charger that charges items anywhere |
+| **Warp Pad Configurator** | Links Warp Pads together |
 
-**Advanced Auto Disenchanter & Ancient Book**: Allows players to disenchant specific enchants from items. Requires an Ancient Book to operate.
+### Items
 
-**Electric Dust Fabricator**: Turns cobblestone into sifted ore
+| Item | What it does |
+|---|---|
+| **Helicopter Hat** | Float upwards while sneaking, and no fall damage |
+| **Fireproof Rune** | Drop it onto a dropped item to make that item fireproof |
 
-**Electric Dust Recycler**: Turns eight of the same dust into one sifted ore
+### Storage, cargo and transport
 
-**Advanced Charging Bench & ACB Upgrade Card**: A charging bench which can be upgraded using upgrade cards.
+| Block | What it does |
+|---|---|
+| **Fluffy Barrels** (Small to Bottomless) | Store a huge amount of one item type. Holograms are off by default; turn them on per barrel with the hologram button in the barrel menu |
+| **Mini Fluffy Barrel** | A barrel with a capacity you can change yourself |
+| **Foundry** + **Superheated Furnace** | Multiblock that melts and stores dusts and ingots, and lets you take them out in either form |
+| **Exp Dispenser** | Collects the XP from all experience bottles in a dispenser and the barrel it faces |
+| **Ender Chest Extraction Node** | Moves items from an ender chest into the container behind it |
+| **Ender Chest Insertion Node** | Moves items from the container behind it into an ender chest |
+| **Warp Pad** | Short distance teleport pads. Sneak on an origin pad to warp to its destination |
+| **Alternate Elevator Plate** | Works like Slimefun's Elevator Plate but uses a chest GUI, handy when players are muted or for looks |
 
-## Generators
-**Crank Generator**: Multiblock machine that generates power when clicked
+> The ender chest nodes do not stack items in inventories, that would cost more performance. Use cargo for that.
 
-## Items
-**Watering Can**: Waters plants and trees to speed up their growth
+## Configuration
 
-**Helicopter Hat**: Allows you to float upwards when sneaking
+Most options are per item and live in `plugins/Slimefun/Items.yml`. Some useful ones:
 
-**Fireproof Rune**: Drop this on your items to prevent them from burning
+| Item | Setting | Default | Description |
+|---|---|---|---|
+| Fluffy Barrels | `show-hologram` | `true` | Allow barrel holograms. Each barrel still starts with its hologram off |
+| Fluffy Barrels | `break-only-when-empty` | `false` | Only allow breaking a barrel when it is empty |
+| Mini Fluffy Barrel | `capacity` | | Maximum capacity a player can set |
+| Water Sprinkler | `success-chance`, `particles` | `0.5`, `true` | Growth chance per tick and particle effects |
+| Advanced Auto Disenchanter | `use-enchant-level-limit`, `enchant-level-limit` | `false`, `10` | Limit the enchantment level that can be removed |
+| Dolly | `can-pick-locked-chest` | `true` | Allow picking up locked chests |
+| Warp Pad Configurator | `max-distance` | `100` | Maximum distance between linked pads, per axis |
+| Explosive tools / Lumber Axe | `trigger-other-plugins`, `break-from-center` | `true`, `false` | Fire block break events for other plugins, and where the 5x5 area starts |
+| Watering Can | `max-uses` | `10` | Number of uses per refill |
 
-**Dolly**: Allows players to pick up chests and place them back down elsewhere, while retaining their inventories.
+The plugin's own `config.yml` has `options.auto-update` and `options.ignore-outdated-warning`.
 
-## Tools
-**Upgraded Explosive Pickaxe & Upgraded Explosive Shovel**: 5x5 variants of the default explosive tools, and break 5 blocks in front of the player instead of 2 blocks all around. By default, these tools trigger other plugins that listen to block breaks, i.e. McMMO (Players get xp for every block broken). These features can be toggled in Items.yml.
+## Commands and permissions
 
-**Upgraded Lumber Axe**: Breaks all logs within 2 blocks of each other, as opposed to adjacent blocks that the default lumber axe targets. Intended to be used for strange trees like acacia and jungle, and even custom trees.
+Main command: `/fluffymachines` (alias `/fm`). Commands can only be run by players.
 
-**Scythe**: Breaks 5 crops per swing
-
-**Fluffy Wrench**: Quickly breaks Slimefun cargo and energy components.
-
-**Paxel**: A pickaxe, axe, and shovel all in one.
-
-## Misc
-**Ender Chest Extraction Node**: Moves items from ender chest to a chest
-
-**Ender Chest Insertion Node**: Moves items from a chest to an ender chest
-
-*The extraction and insertion nodes do not stack items in inventories, that costs more performance and can be handled by cargo.
-
-**Foundry & Superheated Furnace**: Allows the storage of dusts, and can be instantly converted to and from their ingot form.
-
-**Barrels**: Storage containers that store one type of item each
-
-**Warp Pad & Warp Pad Configurator**: Short distance teleportation pads
-
-**Alternate Elevator Plate**: Functions the same as Slimefun's Elevator Plates, but it uses a Chest GUI. Can be used for cosmetic effect, or if your server does not support elevators when a player is muted, this will work.
-
-**Portable Charger**: Multiple tiered handheld chargers that allow players to charge items anywhere
+| Command | Permission | Description |
+|---|---|---|
+| `/fm version` (`/fm v`) | none | Shows the plugin version |
+| `/fm meta`, `/fm rawmeta` | none | Shows the item meta of the item in your hand (for debugging) |
+| `/fm addinfo <key> <value>` | `fluffymachines.admin` | Sets block data on the Slimefun block you are looking at |
+| `/fm saveplayers` | `fluffymachines.admin` | Saves all player data |
 
 ## FAQ
+
 **Can cargo be used on the Foundry?**
-*Yes, but you can not place it directly on the Superheated Furnace. Place down a chest in its place, put the cargo on the chest, and then replace the chest with the Superheated Furnace.*
+Yes, but you can not place a node directly on the Superheated Furnace. Place a chest where the furnace should go, attach
+the cargo node to the chest, then replace the chest with the Superheated Furnace.
+
+**Why don't my barrels show a hologram?**
+Holograms are off by default. Open the barrel and click the hologram button to turn it on. If the button does nothing,
+check that `show-hologram` is `true` in `Items.yml`.
+
+**Does this work with the official Slimefun?**
+No. This version uses the database storage of the SlimefunGuguProject Slimefun build. For the official Slimefun, use
+the [original FluffyMachines](https://github.com/NCBPFluffyBear/FluffyMachines).
+
+## Building from source
+
+Requires JDK 16+ (CI builds with JDK 25) and Maven.
+
+```bash
+git clone https://github.com/mybezo/FluffyMachines.git
+cd FluffyMachines
+mvn package
+```
+
+The plugin jar is written to `target/`.
+
+## Credits and license
+
+- [NCBPFluffyBear](https://github.com/NCBPFluffyBear): original author
+- [SlimefunGuguProject](https://github.com/SlimefunGuguProject): database storage port and maintenance
+
+Licensed under the [GNU General Public License v3.0](LICENSE.txt).
