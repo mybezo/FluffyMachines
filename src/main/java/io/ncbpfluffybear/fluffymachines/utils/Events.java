@@ -1,11 +1,8 @@
 package io.ncbpfluffybear.fluffymachines.utils;
 
-import com.xzavier0722.mc.plugin.slimefun4.storage.callback.IAsyncReadCallback;
-import com.xzavier0722.mc.plugin.slimefun4.storage.controller.BlockDataController;
 import com.xzavier0722.mc.plugin.slimefun4.storage.controller.SlimefunBlockData;
 import com.xzavier0722.mc.plugin.slimefun4.storage.util.StorageCacheUtils;
 import io.github.thebusybiscuit.slimefun4.api.items.SlimefunItem;
-import io.github.thebusybiscuit.slimefun4.implementation.Slimefun;
 import io.ncbpfluffybear.fluffymachines.items.Barrel;
 import io.ncbpfluffybear.fluffymachines.items.FireproofRune;
 import io.ncbpfluffybear.fluffymachines.items.HelicopterHat;
@@ -116,9 +113,9 @@ public class Events implements Listener {
                 || e.getCause() == EntityDamageEvent.DamageCause.LIGHTNING)
                 && !en.isDead()
             ) {
-                en.remove();
-                en.getLocation().getWorld().dropItem(en.getLocation(), item);
-
+                // Cancelling the damage keeps the item alive, no need to respawn the entity every tick
+                e.setCancelled(true);
+                en.setFireTicks(0);
             }
         }
     }
@@ -132,7 +129,10 @@ public class Events implements Listener {
             SlimefunBlockData blockData = StorageCacheUtils.getBlock(b.getLocation());
             if (blockData != null && blockData.getSfId().equals(FluffyItems.WARP_PAD.getItem().getId())) {
                 StorageCacheUtils.executeAfterLoad(blockData, () -> {
-                    if (!blockData.getData("type").equals("origin")) {
+                    if (!"origin".equals(blockData.getData("type"))
+                        || blockData.getData("x") == null
+                        || blockData.getData("y") == null
+                        || blockData.getData("z") == null) {
                         return;
                     }
 
@@ -147,11 +147,13 @@ public class Events implements Listener {
 
                     SlimefunBlockData destData = StorageCacheUtils.getBlock(destination);
                     if (destData != null
+                        && destData.getSfId().equals(FluffyItems.WARP_PAD.getItem().getId())
                         && destination.getBlock().getRelative(BlockFace.UP).getType().isAir()
                         && destination.getBlock().getRelative(BlockFace.UP, 2).getType().isAir()) {
 
                         StorageCacheUtils.executeAfterLoad(destData, () -> {
-                            if (!destData.getData("type").equals("destination")) {
+                            if (!"destination".equals(destData.getData("type"))) {
+                                Utils.send(p, "&cMissing destination Warp Pad!");
                                 return;
                             }
                             destination.setPitch(pitch);
@@ -163,57 +165,12 @@ public class Events implements Listener {
                                 p.playSound(p.getLocation(), Sound.ITEM_CHORUS_FRUIT_TELEPORT, 0.5F, 0.5F);
                                 p.spawnParticle(Particle.DRAGON_BREATH, p.getLocation(), 10);
                             }, 1);
-                        }, false);
+                        }, true);
                     } else {
                         Utils.send(p, "&cMissing destination Warp Pad!");
                     }
-                }, false);
+                }, true);
             }
-        }
-    }
-
-    private void warp(SlimefunBlockData blockData, Block b, Player p) {
-        if (blockData.getData("type").equals("origin")) {
-            Location destination = new Location(b.getWorld(),
-                    Integer.parseInt(blockData.getData("x")),
-                    Integer.parseInt(blockData.getData("y")),
-                    Integer.parseInt(blockData.getData("z")));
-
-            float yaw = p.getLocation().getYaw();
-            float pitch = p.getLocation().getPitch();
-
-            BlockDataController controller = Slimefun.getDatabaseManager().getBlockDataController();
-            controller.getBlockDataAsync(
-                    destination,
-                    new IAsyncReadCallback<SlimefunBlockData>() {
-                        @Override
-                        public void onResult(SlimefunBlockData result) {
-                            if (!result.isDataLoaded()) {
-                                controller.loadBlockData(result);
-                            }
-                            if (!result.getData("type").equals("destination")
-                                    || destination.getBlock().getRelative(BlockFace.UP).getType() == Material.AIR
-                                    || destination.getBlock().getRelative(BlockFace.UP, 2).getType() == Material.AIR
-                            ) {
-                                Utils.send(p, "&cMissing destination Warp Pad!");
-                                return;
-                            }
-
-                            destination.setPitch(pitch);
-                            destination.setYaw(yaw);
-                            Slimefun.runSync(() ->{
-                                p.teleport(destination.add(0.5, 1, 0.5));
-                                p.playSound(p.getLocation(), Sound.ITEM_CHORUS_FRUIT_TELEPORT, 0.5F, 0.5F);
-                                p.spawnParticle(Particle.DRAGON_BREATH, p.getLocation(), 10);
-                            });
-                        }
-
-                        @Override
-                        public void onResultNotFound() {
-                            Utils.send(p, "&cMissing destination Warp Pad!");
-                        }
-                    }
-            );
         }
     }
 

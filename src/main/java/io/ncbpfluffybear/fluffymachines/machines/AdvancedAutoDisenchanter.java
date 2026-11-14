@@ -93,6 +93,7 @@ public class AdvancedAutoDisenchanter extends SlimefunItem implements EnergyNetC
                 menu.addMenuClickHandler(ITEM_SLOT, (p, slot, item, action) -> {
                     menu.replaceExistingItem(SELECTION_SLOT, DEFAULT_SELECTION_ITEM.clone()); // Reset selection item
                     setSelectedIndex(b, -2); // Reset to None
+                    progress.remove(new BlockPosition(b.getWorld(), b.getX(), b.getY(), b.getZ())); // New item starts from zero
                     return true;
                 });
 
@@ -136,6 +137,8 @@ public class AdvancedAutoDisenchanter extends SlimefunItem implements EnergyNetC
             public void onPlayerBreak(@Nonnull BlockBreakEvent e, @Nonnull ItemStack item, @Nonnull List<ItemStack> drops) {
                 Block b = e.getBlock();
                 BlockMenu inv = StorageCacheUtils.getMenu(b.getLocation());
+
+                progress.remove(new BlockPosition(b.getWorld(), b.getX(), b.getY(), b.getZ()));
 
                 if (inv != null) {
                     inv.dropItems(b.getLocation(), ITEM_SLOT);
@@ -190,7 +193,8 @@ public class AdvancedAutoDisenchanter extends SlimefunItem implements EnergyNetC
 
         // Validate input
         SlimefunItem sfItem = SlimefunItem.getByItem(input);
-        if (input == null || input.getEnchantments().isEmpty()
+        // Only one item at a time: the whole input is moved to the output, so a stack would be duplicated
+        if (input == null || input.getAmount() != 1 || input.getEnchantments().isEmpty()
             || sfItem != null && !sfItem.isDisenchantable()
         ) {
             return;
@@ -218,8 +222,14 @@ public class AdvancedAutoDisenchanter extends SlimefunItem implements EnergyNetC
         // Get output
         Map<Enchantment, Integer> disenchants = getValidDisenchants(input);
 
-        // Get disenchant using index
-        Enchantment outputEnchant = disenchants.keySet().toArray(new Enchantment[0])[selectedEnchant];
+        // Get disenchant using index (the input may have changed since the enchant was picked)
+        Enchantment[] disenchantKeys = disenchants.keySet().toArray(new Enchantment[0]);
+        if (selectedEnchant >= disenchantKeys.length) {
+            setSelectedIndex(b, -2);
+            inv.replaceExistingItem(SELECTION_SLOT, DEFAULT_SELECTION_ITEM.clone());
+            return;
+        }
+        Enchantment outputEnchant = disenchantKeys[selectedEnchant];
 
         if (outputEnchant == null) {
             return;

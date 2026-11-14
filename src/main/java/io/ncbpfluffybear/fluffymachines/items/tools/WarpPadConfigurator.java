@@ -88,7 +88,7 @@ public class WarpPadConfigurator extends SlimefunItem implements HologramOwner, 
                             updateHologram(b, "&a&lDestination");
                             blockData.setData("type", "destination");
                             Utils.send(p, "&3This pad has been marked as a &aDestination &3and bound to your configurator");
-                        }, false);
+                        }, true);
                     } else if (PersistentDataAPI.hasString(meta, world) && b.getWorld().getName().equals(
                         PersistentDataAPI.getString(meta, world))) {
                         // Origin
@@ -98,10 +98,11 @@ public class WarpPadConfigurator extends SlimefunItem implements HologramOwner, 
                             int z = PersistentDataAPI.getInt(meta, zCoord, 0);
 
                             if (Math.abs(x - b.getX()) > MAX_DISTANCE.getValue()
+                                || Math.abs(y - b.getY()) > MAX_DISTANCE.getValue()
                                 || Math.abs(z - b.getZ()) > MAX_DISTANCE.getValue()) {
 
-                                Utils.send(p, "&cYou can not link blocks more than "
-                                    + MAX_DISTANCE.getValue() + " blocks apart!");
+                                Utils.send(p, "&cWarp Pads can not be more than "
+                                    + MAX_DISTANCE.getValue() + " blocks apart on any axis!");
 
                                 return;
                             }
@@ -114,7 +115,7 @@ public class WarpPadConfigurator extends SlimefunItem implements HologramOwner, 
                             updateHologram(b, "&a&lOrigin");
 
                             Utils.send(p, "&3This pad has been marked as an &aOrigin &3and your configurator's settings have been pasted onto this pad");
-                        }, false);
+                        }, true);
                     } else {
                         Utils.send(p, "&cSneak and right click on a Warp Pad to set the destination, then right click another Warp Pad to set the origin!");
                     }

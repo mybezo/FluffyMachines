@@ -21,6 +21,7 @@ import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
+import org.bukkit.event.inventory.ClickType;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
@@ -92,6 +93,16 @@ public class PortableCharger extends SimpleSlimefunItem<ItemUseHandler> implemen
 
             // Task that triggers every second
             new BukkitRunnable() {
+                // Only tell the player once per state instead of every second
+                private String lastMessage = null;
+
+                private void sendOnce(String message) {
+                    if (!message.equals(lastMessage)) {
+                        Utils.send(p, message);
+                        lastMessage = message;
+                    }
+                }
+
                 public void run() {
 
                     ItemStack deviceItem = inventory.getItem(CHARGE_SLOT);
@@ -100,44 +111,42 @@ public class PortableCharger extends SimpleSlimefunItem<ItemUseHandler> implemen
                     if (sfItem instanceof PortableCharger) {
                         p.closeInventory();
                         Utils.send(p, "&cYou can not charge a portable charger");
-                    }
-
-                    if (sfItem instanceof Rechargeable) {
-                        Rechargeable device = (Rechargeable) sfItem;
-                        float neededCharge = device.getMaxItemCharge(deviceItem)
-                            - device.getItemCharge(deviceItem);
-                        // fix: stop charging when the charger item is no longer valid
-                        if (chargerItem == null || chargerItem.getType().isAir()) {
-                            cancel();
+                    } else if (sfItem instanceof Rechargeable) {
+                        if (!(SlimefunItem.getByItem(chargerItem) instanceof PortableCharger)) {
+                            // The charger is no longer valid: stop charging, the device is given back below
+                            p.closeInventory();
                             Utils.send(p, "&cWhere did your portable charger go?");
-                            return;
-                        }
-                        float availableCharge = charger.getItemCharge(chargerItem);
+                        } else if (inventory.getViewers().contains(p)) {
+                            Rechargeable device = (Rechargeable) sfItem;
+                            float neededCharge = device.getMaxItemCharge(deviceItem)
+                                - device.getItemCharge(deviceItem);
+                            float availableCharge = charger.getItemCharge(chargerItem);
 
-                        // Three different scenarios
-                        if (p.getGameMode() == GameMode.CREATIVE && neededCharge > 0) {
-                            device.setItemCharge(deviceItem, device.getMaxItemCharge(deviceItem));
+                            // Three different scenarios
+                            if (p.getGameMode() == GameMode.CREATIVE && neededCharge > 0) {
+                                device.setItemCharge(deviceItem, device.getMaxItemCharge(deviceItem));
 
-                        } else if (neededCharge > 0 && availableCharge > 0) {
+                            } else if (neededCharge > 0 && availableCharge > 0) {
+                                lastMessage = null;
 
-                            if (neededCharge >= CHARGE_SPEED && availableCharge >= CHARGE_SPEED) {
-                                transferCharge(charger, chargerItem, device, deviceItem, CHARGE_SPEED);
+                                if (neededCharge >= CHARGE_SPEED && availableCharge >= CHARGE_SPEED) {
+                                    transferCharge(charger, chargerItem, device, deviceItem, CHARGE_SPEED);
+
+                                } else {
+                                    transferCharge(charger, chargerItem, device, deviceItem, Math.min(neededCharge,
+                                        availableCharge));
+                                }
+
+                            } else if (neededCharge == 0) {
+                                sendOnce("&cThis item is already full!");
 
                             } else {
-                                transferCharge(charger, chargerItem, device, deviceItem, Math.min(neededCharge,
-                                    availableCharge));
+                                sendOnce("&cYour charger does not have enough power!");
                             }
 
-                        } else if (neededCharge == 0) {
-                            Utils.send(p, "&cThis item is already full!");
-
-                        } else {
-                            Utils.send(p, "&cYour charger does not have enough power!");
+                            updateSlot(inventory, POWER_SLOT, "&6&lPower Remaining",
+                                "&e" + charger.getItemCharge(chargerItem) + "J");
                         }
-
-                        // The name of the powerItem NEEDS to be "Portable Charger" to cancel event
-                        updateSlot(inventory, POWER_SLOT, "&6&lPower Remaining",
-                            "&e" + charger.getItemCharge(chargerItem) + "J");
                     }
 
                     // Check if GUI is no longer open
@@ -161,7 +170,12 @@ public class PortableCharger extends SimpleSlimefunItem<ItemUseHandler> implemen
     public void onChargerItemClick(InventoryClickEvent e) {
         SlimefunItem sfItem1 = SlimefunItem.getByItem(e.getCurrentItem());
         SlimefunItem sfItem2 = SlimefunItem.getByItem(e.getCursor());
-        if ((sfItem1 instanceof PortableCharger || sfItem2 instanceof PortableCharger)
+        // Number key / off-hand swaps move an item without it being the clicked or cursor item
+        ItemStack swapped = e.getHotbarButton() >= 0
+            ? e.getWhoClicked().getInventory().getItem(e.getHotbarButton())
+            : (e.getClick() == ClickType.SWAP_OFFHAND ? e.getWhoClicked().getInventory().getItemInOffHand() : null);
+        SlimefunItem sfItem3 = SlimefunItem.getByItem(swapped);
+        if ((sfItem1 instanceof PortableCharger || sfItem2 instanceof PortableCharger || sfItem3 instanceof PortableCharger)
             && e.getWhoClicked().getOpenInventory().getTitle().contains("Portable Charger")) {
             e.setCancelled(true);
         }

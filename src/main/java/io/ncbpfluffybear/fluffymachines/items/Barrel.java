@@ -174,6 +174,7 @@ public class Barrel extends NonHopperableBlock implements DoubleHologramOwner {
                         if (unKeyed.getType() == Material.BARRIER) {
                             setStored(b, 0);
                             updateMenu(b, inv, true, capacity);
+                            removeHologram(b);
                             return;
                         }
 
@@ -244,12 +245,12 @@ public class Barrel extends NonHopperableBlock implements DoubleHologramOwner {
 
             setStored(b, 0);
 
-            if (showHologram.getValue()) {
+            if (isHologramEnabled(b)) {
                 updateHologram(b, null, "&cEmpty");
             }
 
             // Change hologram settings
-        } else if (!showHologram.getValue()) {
+        } else if (!isHologramEnabled(b)) {
             removeHologram(b);
         }
 
@@ -258,8 +259,7 @@ public class Barrel extends NonHopperableBlock implements DoubleHologramOwner {
         menu.addMenuClickHandler(DISPLAY_SLOT, ChestMenuUtils.getEmptyClickHandler());
 
         // Toggle hologram (Dynamic button)
-        String holo = StorageCacheUtils.getData(b.getLocation(), "holo");
-        if (holo == null || holo.equals("true")) {
+        if ("true".equals(StorageCacheUtils.getData(b.getLocation(), "holo"))) {
             menu.replaceExistingItem(HOLOGRAM_TOGGLE_SLOT, HOLOGRAM_ON_ITEM);
         } else {
             menu.replaceExistingItem(HOLOGRAM_TOGGLE_SLOT, HOLOGRAM_OFF_ITEM);
@@ -453,7 +453,7 @@ public class Barrel extends NonHopperableBlock implements DoubleHologramOwner {
      * @param inv is the barrel's inventory
      */
     public void updateMenu(Block b, BlockMenu inv, boolean force, int capacity) {
-        String hasHolo = StorageCacheUtils.getData(b.getLocation(), "holo");
+        boolean hologramEnabled = isHologramEnabled(b);
         int stored = getStored(b);
         String itemName = "";
         ItemStack item = inv.getItemInSlot(DISPLAY_SLOT);
@@ -476,13 +476,13 @@ public class Barrel extends NonHopperableBlock implements DoubleHologramOwner {
             itemName = ItemStackHelper.getDisplayName(inv.getItemInSlot(DISPLAY_SLOT));
         }
 
-        if (showHologram.getValue() && (hasHolo == null || hasHolo.equals("true"))) {
+        if (hologramEnabled) {
             updateHologram(b, itemName, " &9x" + stored + " &7(" + storedPercent + "&7%)");
         }
 
         if (stored == 0) {
             inv.replaceExistingItem(DISPLAY_SLOT, new CustomItemStack(Material.BARRIER, "&cEmpty"));
-            if (showHologram.getValue() && (hasHolo == null || hasHolo.equals("true"))) {
+            if (hologramEnabled) {
                 updateHologram(b, null, "&cEmpty");
             }
         }
@@ -494,14 +494,21 @@ public class Barrel extends NonHopperableBlock implements DoubleHologramOwner {
      * @param b is the block the hologram is linked to
      */
     private void toggleHolo(Block b, int capacity) {
-        String toggle = StorageCacheUtils.getData(b.getLocation(), "holo");
-        if (toggle == null || toggle.equals("true")) {
+        if ("true".equals(StorageCacheUtils.getData(b.getLocation(), "holo"))) {
             putBlockData(b, HOLOGRAM_TOGGLE_SLOT, "holo", HOLOGRAM_OFF_ITEM, false);
             removeHologram(b);
         } else {
             putBlockData(b, HOLOGRAM_TOGGLE_SLOT, "holo", HOLOGRAM_ON_ITEM, true);
             updateMenu(b, StorageCacheUtils.getMenu(b.getLocation()), false, capacity);
         }
+    }
+
+    /**
+     * Holograms are off by default: a barrel only shows one after a player turns it on
+     * ("holo" = "true"), and only while the show-hologram item setting is enabled.
+     */
+    private boolean isHologramEnabled(Block b) {
+        return showHologram.getValue() && "true".equals(StorageCacheUtils.getData(b.getLocation(), "holo"));
     }
 
     /**

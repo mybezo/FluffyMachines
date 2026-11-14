@@ -401,6 +401,8 @@ public class AutoCraftingTable extends SlimefunItem implements EnergyNetComponen
             for (Pair<ItemStack, List<RecipeChoice>> recipe : FluffyMachines.shapelessVanillaRecipes.get(keyItem)) {
                 List<RecipeChoice> rc = recipe.getSecondValue();
                 List<RecipeChoice> rcCheck = new ArrayList<>(rc);
+                // Each recipe gets its own copy, so a failed match does not eat items needed by the next recipe
+                List<ItemStack> itemsLeft = new ArrayList<>(existingItems);
 
                 if (existingItems.size() != rc.size()) {
                     if (menu.hasViewer()) {
@@ -412,16 +414,16 @@ public class AutoCraftingTable extends SlimefunItem implements EnergyNetComponen
 
                 // Chop down the list until all items are tested
                 for (RecipeChoice r : rc) {
-                    for (ItemStack item : existingItems) {
+                    for (ItemStack item : itemsLeft) {
                         if (r.test(item)) {
-                            existingItems.remove(item);
+                            itemsLeft.remove(item);
                             rcCheck.remove(r);
                             break;
                         }
                     }
                 }
 
-                if (existingItems.isEmpty() && rcCheck.isEmpty()) {
+                if (itemsLeft.isEmpty() && rcCheck.isEmpty()) {
                     if (menu.hasViewer()) {
                         menu.replaceExistingItem(statusSlot,
                                 new CustomItemStack(new ItemStack(Material.GREEN_STAINED_GLASS_PANE),

@@ -31,7 +31,7 @@ import org.bukkit.scheduler.BukkitRunnable;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.Arrays;
-import java.util.HashMap;
+import java.util.WeakHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -50,7 +50,8 @@ public class Dolly extends SimpleSlimefunItem<ItemUseHandler> {
 
     public Dolly(ItemGroup category, SlimefunItemStack item, RecipeType recipeType, ItemStack[] recipe) {
         super(category, item, recipeType, recipe);
-        this.timeouts = new HashMap<>();
+        // Weak keys so players who left the server can be garbage collected
+        this.timeouts = new WeakHashMap<>();
         addItemSetting(canPickupLockedChest);
     }
 
