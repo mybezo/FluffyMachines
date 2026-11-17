@@ -65,10 +65,13 @@ Several machines combined into one block, in four tiers: **x8, x16, x32 and x64*
 
 | Compressed machine | What is multiplied |
 |---|---|
-| **Auto Crafting Table**, **Auto Magic Workbench**, **Auto Ancient Altar** | Crafts up to N times per tick, as far as the inputs (every slot keeps 1 item as the template), the energy and the output space allow |
+| **Auto Crafting Table**, **Auto Enhanced Crafting Table**, **Auto Magic Workbench**, **Auto Ancient Altar** | Crafts up to N times per tick, as far as the inputs (every slot keeps 1 item as the template), the energy and the output space allow |
 | **Auto Table Saw** | Saws up to N items per tick |
 | **Smart Factory** | Same speed, every finished cycle makes up to N items, using ingredients from any input slots |
 
+- The compressed crafters (Auto Crafting Table, Auto Enhanced Crafting Table, Auto Magic Workbench,
+  Auto Ancient Altar) wait until every used input slot is full enough for the whole batch: the multiplier
+  plus 1 template item, or a full stack. A x64 crafter waits for full stacks of 64 and crafts 63 at once.
 - Recipes (Compressor): x8 = 8 normal machines, x16 = 2 x8, x32 = 2 x16, x64 = 2 x32.
 - Energy is only used for what is actually processed. The energy buffer is multiplied too.
 - Outputs are always split into valid stacks; nothing is made when there is no room for it.

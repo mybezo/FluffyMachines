@@ -10,7 +10,7 @@ import io.github.thebusybiscuit.slimefun4.utils.ChestMenuUtils;
 import io.ncbpfluffybear.fluffymachines.FluffyMachines;
 import me.mrCookieSlime.CSCoreLibPlugin.general.Inventory.ChestMenu;
 import me.mrCookieSlime.Slimefun.api.inventory.BlockMenu;
-import net.guizhanss.guizhanlib.minecraft.helper.inventory.ItemStackHelper;
+import org.bukkit.enchantments.Enchantment;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
@@ -134,8 +134,45 @@ public final class Utils {
         }
     }
 
+    /**
+     * The name of an item as players see it: its display name, or the English name of its material.
+     * (GuizhanLib's helper gives Chinese names for vanilla items.)
+     */
     public static String getViewableName(ItemStack item) {
-        return ItemStackHelper.getDisplayName(item);
+        if (item == null) {
+            return "";
+        }
+        if (item.hasItemMeta()) {
+            ItemMeta meta = item.getItemMeta();
+            if (meta != null && meta.hasDisplayName()) {
+                return meta.getDisplayName();
+            }
+        }
+        return humanize(item.getType().name());
+    }
+
+    /**
+     * The English name of an enchantment, e.g. "Fire Aspect".
+     */
+    public static String getEnchantmentName(Enchantment enchantment) {
+        return humanize(enchantment.getKey().getKey());
+    }
+
+    /**
+     * Turns a key like "IRON_INGOT" or "fire_aspect" into "Iron Ingot" / "Fire Aspect".
+     */
+    public static String humanize(String key) {
+        StringBuilder builder = new StringBuilder(key.length());
+        for (String word : key.toLowerCase(java.util.Locale.ROOT).split("_")) {
+            if (word.isEmpty()) {
+                continue;
+            }
+            if (builder.length() > 0) {
+                builder.append(' ');
+            }
+            builder.append(Character.toUpperCase(word.charAt(0))).append(word.substring(1));
+        }
+        return builder.toString();
     }
 
     public static String toRoman(int number) {

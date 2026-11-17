@@ -338,7 +338,12 @@ public class AutoCrafter extends SlimefunItem implements EnergyNetComponent, Com
             if (item == null || item.getType() == Material.AIR) {
                 continue;
             }
-            int usable = item.getType().getMaxStackSize() == 1 ? item.getAmount() : item.getAmount() - 1;
+            boolean keepTemplate = item.getType().getMaxStackSize() != 1;
+            // a compressed crafter waits until every slot is full enough for the whole batch
+            if (!CompressedUtils.isFullEnough(item, multiplier, keepTemplate)) {
+                return 0;
+            }
+            int usable = keepTemplate ? item.getAmount() - 1 : item.getAmount();
             available = Math.min(available, usable);
         }
         return available == Integer.MAX_VALUE ? 0 : available;

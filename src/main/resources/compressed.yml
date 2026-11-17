@@ -2,6 +2,8 @@
 # A compressed machine combines several machines into one.
 # Every operation handles up to the multiplier at once (limited by the inputs, the energy and
 # the output space), and energy is only used for what is actually processed.
+# The compressed crafters wait until every used input slot holds the multiplier plus 1 template item
+# (or a full stack), so a x64 crafter waits for full stacks of 64 and crafts 63 at once.
 #
 # Recipes (Compressor):
 #   x8  = 8 of the original machine
@@ -30,6 +32,7 @@ multipliers:
 # Enable/disable the compressed versions (all multipliers) of each machine
 machines:
   AUTO_CRAFTING_TABLE: true
+  AUTO_ENHANCED_CRAFTING_TABLE: true
   AUTO_MAGIC_WORKBENCH: true
   AUTO_ANCIENT_ALTAR: true
   AUTO_TABLE_SAW: true

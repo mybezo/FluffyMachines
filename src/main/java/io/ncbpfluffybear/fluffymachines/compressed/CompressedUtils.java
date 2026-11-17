@@ -98,6 +98,23 @@ public final class CompressedUtils {
     }
 
     /**
+     * Whether an input slot of a compressed crafter is full enough to start: it needs the items for
+     * the whole batch, plus the template item it keeps, but never more than a full stack.
+     * For example x8 waits for 9 items, x64 waits for a full stack of 64 (and crafts 63, 1 stays as the template).
+     * Normal machines (multiplier 1) never wait.
+     *
+     * @param keepTemplate whether the slot keeps 1 item as the template
+     */
+    public static boolean isFullEnough(@Nonnull ItemStack slotItem, int multiplier, boolean keepTemplate) {
+        if (multiplier <= 1) {
+            return true;
+        }
+        long wanted = keepTemplate ? (long) multiplier + 1 : multiplier;
+        int required = (int) Math.min(wanted, Math.max(1, slotItem.getMaxStackSize()));
+        return slotItem.getAmount() >= required;
+    }
+
+    /**
      * Recipe display items for the guide page of a machine, showing its multiplier.
      * Empty for normal machines, so their guide page does not change.
      */

@@ -1,6 +1,6 @@
 package io.ncbpfluffybear.fluffymachines.compressed;
 
-import dev.j3fftw.extrautils.utils.LoreBuilderDynamic;
+import io.ncbpfluffybear.fluffymachines.utils.FluffyLore;
 import io.github.thebusybiscuit.slimefun4.api.items.ItemGroup;
 import io.github.thebusybiscuit.slimefun4.api.items.SlimefunItem;
 import io.github.thebusybiscuit.slimefun4.api.items.SlimefunItemStack;
@@ -14,6 +14,7 @@ import io.ncbpfluffybear.fluffymachines.FluffyItemSetup;
 import io.ncbpfluffybear.fluffymachines.FluffyMachines;
 import io.ncbpfluffybear.fluffymachines.machines.AutoAncientAltar;
 import io.ncbpfluffybear.fluffymachines.machines.AutoCraftingTable;
+import io.ncbpfluffybear.fluffymachines.machines.AutoEnhancedCraftingTable;
 import io.ncbpfluffybear.fluffymachines.machines.AutoMagicWorkbench;
 import io.ncbpfluffybear.fluffymachines.machines.AutoTableSaw;
 import io.ncbpfluffybear.fluffymachines.machines.SmartFactory;
@@ -96,6 +97,8 @@ public final class CompressedMachineSetup {
 
         entries.add(new Entry(FluffyItems.AUTO_CRAFTING_TABLE, Category.MACHINES,
             AutoCraftingTable.CAPACITY, AutoCraftingTable.ENERGY_CONSUMPTION, AutoCraftingTable::new));
+        entries.add(new Entry(FluffyItems.AUTO_ENHANCED_CRAFTING_TABLE, Category.MACHINES,
+            AutoCrafter.CAPACITY, AutoCrafter.ENERGY_CONSUMPTION, AutoEnhancedCraftingTable::new));
         entries.add(new Entry(FluffyItems.AUTO_MAGIC_WORKBENCH, Category.MACHINES,
             AutoCrafter.CAPACITY, AutoCrafter.ENERGY_CONSUMPTION, AutoMagicWorkbench::new));
         entries.add(new Entry(FluffyItems.AUTO_ANCIENT_ALTAR, Category.MACHINES,
@@ -196,15 +199,15 @@ public final class CompressedMachineSetup {
         meta.setDisplayName(ChatColors.color(CompressedUtils.name(meta.getDisplayName(), multiplier)));
 
         // the energy lines are rebuilt with the multiplied values, the rest of the lore is kept
-        String bufferLine = ChatColors.color(LoreBuilderDynamic.powerBuffer(entry.capacity));
-        String energyLine = ChatColors.color(LoreBuilderDynamic.powerPerSecond(entry.energy));
+        String bufferLine = ChatColors.color(FluffyLore.powerBuffer(entry.capacity));
+        String energyLine = ChatColors.color(FluffyLore.powerPerSecond(entry.energy));
         List<String> lore = new ArrayList<>();
         if (meta.hasLore()) {
             for (String line : meta.getLore()) {
                 if (line.equals(bufferLine)) {
-                    lore.add(ChatColors.color(LoreBuilderDynamic.powerBuffer(CompressedUtils.scale(entry.capacity, multiplier))));
+                    lore.add(ChatColors.color(FluffyLore.powerBuffer(CompressedUtils.scale(entry.capacity, multiplier))));
                 } else if (line.equals(energyLine)) {
-                    lore.add(ChatColors.color(LoreBuilderDynamic.powerPerSecond(CompressedUtils.scale(entry.energy, multiplier))));
+                    lore.add(ChatColors.color(FluffyLore.powerPerSecond(CompressedUtils.scale(entry.energy, multiplier))));
                 } else {
                     lore.add(line);
                 }

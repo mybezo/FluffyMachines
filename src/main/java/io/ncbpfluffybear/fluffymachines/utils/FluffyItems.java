@@ -1,6 +1,5 @@
 package io.ncbpfluffybear.fluffymachines.utils;
 
-import dev.j3fftw.extrautils.utils.LoreBuilderDynamic;
 import io.github.thebusybiscuit.slimefun4.api.items.SlimefunItemStack;
 import io.github.thebusybiscuit.slimefun4.api.player.PlayerBackpack;
 import io.github.thebusybiscuit.slimefun4.core.attributes.MachineTier;
@@ -167,8 +166,8 @@ public class FluffyItems {
         "",
         "&7Automatically crafts &fvanilla &7recipes",
         "",
-        LoreBuilderDynamic.powerBuffer(AutoCraftingTable.CAPACITY),
-        LoreBuilderDynamic.powerPerSecond(AutoCraftingTable.ENERGY_CONSUMPTION)
+        FluffyLore.powerBuffer(AutoCraftingTable.CAPACITY),
+        FluffyLore.powerPerSecond(AutoCraftingTable.ENERGY_CONSUMPTION)
     );
     public static final SlimefunItemStack AUTO_ANCIENT_ALTAR = new SlimefunItemStack(
         "AUTO_ANCIENT_ALTAR",
@@ -177,8 +176,8 @@ public class FluffyItems {
         "",
         "&7Automatically crafts &5Ancient Altar &7recipes",
         "",
-        LoreBuilderDynamic.powerBuffer(AutoAncientAltar.CAPACITY),
-        LoreBuilderDynamic.powerPerSecond(AutoAncientAltar.ENERGY_CONSUMPTION)
+        FluffyLore.powerBuffer(AutoAncientAltar.CAPACITY),
+        FluffyLore.powerPerSecond(AutoAncientAltar.ENERGY_CONSUMPTION)
     );
     public static final SlimefunItemStack AUTO_TABLE_SAW = new SlimefunItemStack(
         "AUTO_TABLE_SAW",
@@ -187,8 +186,8 @@ public class FluffyItems {
         "",
         "&7Automatically crafts &6Table Saw &7recipes",
         "",
-        LoreBuilderDynamic.powerBuffer(AutoTableSaw.CAPACITY),
-        LoreBuilderDynamic.powerPerSecond(AutoTableSaw.ENERGY_CONSUMPTION)
+        FluffyLore.powerBuffer(AutoTableSaw.CAPACITY),
+        FluffyLore.powerPerSecond(AutoTableSaw.ENERGY_CONSUMPTION)
     );
     public static final SlimefunItemStack WATER_SPRINKER = new SlimefunItemStack(
         "WATER_SPRINKLER",
@@ -197,8 +196,8 @@ public class FluffyItems {
         "",
         "&7Sprinkly sprinkly",
         "",
-        LoreBuilderDynamic.powerBuffer(WaterSprinkler.CAPACITY),
-        LoreBuilderDynamic.powerPerSecond(WaterSprinkler.ENERGY_CONSUMPTION) + " per crop"
+        FluffyLore.powerBuffer(WaterSprinkler.CAPACITY),
+        FluffyLore.powerPerSecond(WaterSprinkler.ENERGY_CONSUMPTION) + " per crop"
     );
     public static final SlimefunItemStack GENERATOR_CORE = new SlimefunItemStack(
         "GENERATOR_CORE",
@@ -214,8 +213,8 @@ public class FluffyItems {
         "",
         "&eRight click &7the lever to generate power",
         "",
-        LoreBuilderDynamic.power(CrankGenerator.RATE, "/Crank"),
-        LoreBuilderDynamic.powerBuffer(CrankGenerator.CAPACITY),
+        FluffyLore.power(CrankGenerator.RATE, "/Crank"),
+        FluffyLore.powerBuffer(CrankGenerator.CAPACITY),
         "",
         Utils.multiBlockWarning()
     );
@@ -238,8 +237,8 @@ public class FluffyItems {
         "",
         "&7Empties the contents of backpacks",
         "",
-        LoreBuilderDynamic.powerBuffer(BackpackUnloader.CAPACITY),
-        LoreBuilderDynamic.powerPerSecond(BackpackUnloader.ENERGY_CONSUMPTION)
+        FluffyLore.powerBuffer(BackpackUnloader.CAPACITY),
+        FluffyLore.powerPerSecond(BackpackUnloader.ENERGY_CONSUMPTION)
     );
     public static final SlimefunItemStack BACKPACK_LOADER = new SlimefunItemStack(
         "BACKPACK_LOADER",
@@ -248,8 +247,8 @@ public class FluffyItems {
         "",
         "&7Moves items from inventory to backpack",
         "",
-        LoreBuilderDynamic.powerBuffer(BackpackLoader.CAPACITY),
-        LoreBuilderDynamic.powerPerSecond(BackpackLoader.ENERGY_CONSUMPTION)
+        FluffyLore.powerBuffer(BackpackLoader.CAPACITY),
+        FluffyLore.powerPerSecond(BackpackLoader.ENERGY_CONSUMPTION)
     );
     public static final SlimefunItemStack UPGRADED_EXPLOSIVE_PICKAXE = new SlimefunItemStack(
         "UPGRADED_EXPLOSIVE_PICKAXE",
@@ -290,8 +289,8 @@ public class FluffyItems {
         "",
         "&7Automatically crafts &eEnhanced Crafting Table &7recipes",
         "",
-        LoreBuilderDynamic.powerBuffer(AutoCrafter.CAPACITY),
-        LoreBuilderDynamic.powerPerSecond(AutoCrafter.ENERGY_CONSUMPTION)
+        FluffyLore.powerBuffer(AutoCrafter.CAPACITY),
+        FluffyLore.powerPerSecond(AutoCrafter.ENERGY_CONSUMPTION)
     );
     public static final SlimefunItemStack AUTO_MAGIC_WORKBENCH = new SlimefunItemStack(
         "AUTO_MAGIC_WORKBENCH",
@@ -300,8 +299,8 @@ public class FluffyItems {
         "",
         "&7Automatically crafts &6Magic Workbench &7recipes",
         "",
-        LoreBuilderDynamic.powerBuffer(AutoCrafter.CAPACITY),
-        LoreBuilderDynamic.powerPerSecond(AutoCrafter.ENERGY_CONSUMPTION)
+        FluffyLore.powerBuffer(AutoCrafter.CAPACITY),
+        FluffyLore.powerPerSecond(AutoCrafter.ENERGY_CONSUMPTION)
     );
     public static final SlimefunItemStack AUTO_ARMOR_FORGE = new SlimefunItemStack(
         "AUTO_ARMOR_FORGE",
@@ -310,8 +309,8 @@ public class FluffyItems {
         "",
         "&7Automatically crafts &6Armor Forge &7recipes",
         "",
-        LoreBuilderDynamic.powerBuffer(AutoCrafter.CAPACITY),
-        LoreBuilderDynamic.powerPerSecond(AutoCrafter.ENERGY_CONSUMPTION)
+        FluffyLore.powerBuffer(AutoCrafter.CAPACITY),
+        FluffyLore.powerPerSecond(AutoCrafter.ENERGY_CONSUMPTION)
     );
     public static final SlimefunItemStack ADVANCED_AUTO_DISENCHANTER = new SlimefunItemStack(
         "ADVANCED_AUTO_DISENCHANTER",
@@ -321,8 +320,8 @@ public class FluffyItems {
         "&7Removes one enchant from an item",
         "&7Requires an &6Ancient Book &7to operate",
         "",
-        LoreBuilderDynamic.powerBuffer(AdvancedAutoDisenchanter.CAPACITY),
-        LoreBuilderDynamic.powerPerSecond(AdvancedAutoDisenchanter.ENERGY_CONSUMPTION)
+        FluffyLore.powerBuffer(AdvancedAutoDisenchanter.CAPACITY),
+        FluffyLore.powerPerSecond(AdvancedAutoDisenchanter.ENERGY_CONSUMPTION)
     );
     public static final SlimefunItemStack SCYTHE = new SlimefunItemStack(
         "SCYTHE",
@@ -377,10 +376,10 @@ public class FluffyItems {
         "&6Electric Dust Fabricator",
         "",
         "&7An all-in-one machine that grinds, pans, and washes",
-        LoreBuilder.machine(MachineTier.END_GAME, MachineType.MACHINE),
-        LoreBuilder.speed(10),
-        LoreBuilderDynamic.powerBuffer(ElectricDustFabricator.CAPACITY),
-        LoreBuilderDynamic.powerPerSecond(ElectricDustFabricator.ENERGY_CONSUMPTION)
+        FluffyLore.machine(MachineTier.END_GAME, MachineType.MACHINE),
+        FluffyLore.speed(10),
+        FluffyLore.powerBuffer(ElectricDustFabricator.CAPACITY),
+        FluffyLore.powerPerSecond(ElectricDustFabricator.ENERGY_CONSUMPTION)
     );
 
     public static final SlimefunItemStack ELECTRIC_DUST_RECYCLER = new SlimefunItemStack(
@@ -389,10 +388,10 @@ public class FluffyItems {
         "&fElectric Dust Recycler",
         "",
         "&7Recycles dust back into sifted ore",
-        LoreBuilder.machine(MachineTier.END_GAME, MachineType.MACHINE),
-        LoreBuilder.speed(1),
-        LoreBuilderDynamic.powerBuffer(ElectricDustRecycler.CAPACITY),
-        LoreBuilderDynamic.powerPerSecond(ElectricDustRecycler.ENERGY_CONSUMPTION)
+        FluffyLore.machine(MachineTier.END_GAME, MachineType.MACHINE),
+        FluffyLore.speed(1),
+        FluffyLore.powerBuffer(ElectricDustRecycler.CAPACITY),
+        FluffyLore.powerPerSecond(ElectricDustRecycler.ENERGY_CONSUMPTION)
     );
 
     public static final SlimefunItemStack ALTERNATE_ELEVATOR_PLATE = new SlimefunItemStack(
@@ -501,10 +500,10 @@ public class FluffyItems {
         "&7An all-in-one machine that crafts",
         "&7resources from raw materials",
         "",
-        LoreBuilder.machine(MachineTier.END_GAME, MachineType.MACHINE),
-        LoreBuilder.speed(1),
-        LoreBuilderDynamic.powerBuffer(SmartFactory.getEnergyCapacity()),
-        LoreBuilderDynamic.powerPerSecond(SmartFactory.getEnergyConsumption())
+        FluffyLore.machine(MachineTier.END_GAME, MachineType.MACHINE),
+        FluffyLore.speed(1),
+        FluffyLore.powerBuffer(SmartFactory.getEnergyCapacity()),
+        FluffyLore.powerPerSecond(SmartFactory.getEnergyConsumption())
     );
 
     static {

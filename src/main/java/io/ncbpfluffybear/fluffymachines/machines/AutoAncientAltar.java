@@ -325,6 +325,11 @@ public class AutoAncientAltar extends SlimefunItem implements EnergyNetComponent
 
             Material type = slotItem.getType();
             boolean keepTemplate = !craftOnce && type.getMaxStackSize() != 1;
+            // a compressed altar waits until every slot is full enough for the whole batch,
+            // "Craft Once" crafts right away with what is there
+            if (!craftOnce && !CompressedUtils.isFullEnough(slotItem, multiplier, keepTemplate)) {
+                return;
+            }
             availableCrafts = Math.min(availableCrafts, keepTemplate ? slotItem.getAmount() - 1 : slotItem.getAmount());
         }
 

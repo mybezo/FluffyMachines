@@ -477,7 +477,17 @@ public class AutoCraftingTable extends SlimefunItem implements EnergyNetComponen
 
     private void craft(Block block, BlockMenu menu, ItemStack item) {
         // A compressed table crafts as many times as the inputs, the energy and the output space allow
-        int times = Math.min(multiplier, getAvailableCrafts(menu));
+        int available = getAvailableCrafts(menu);
+        if (available <= 0) {
+            if (isCompressed() && menu.hasViewer()) {
+                menu.replaceExistingItem(statusSlot, new CustomItemStack(new ItemStack(Material.YELLOW_STAINED_GLASS_PANE),
+                        "&e&lWaiting for full stacks", "&7Every slot needs " + Math.min(multiplier + 1, 64) + " items",
+                        "&7(or a full stack)"));
+            }
+            return;
+        }
+
+        int times = Math.min(multiplier, available);
         times = CompressedUtils.affordable(getCharge(block.getLocation()), getEnergyConsumption(), times);
         int fitting = CompressedUtils.maxFitting(menu, item, times, getOutputSlots());
 
@@ -513,6 +523,10 @@ public class AutoCraftingTable extends SlimefunItem implements EnergyNetComponen
         for (int slot : getInputSlots()) {
             ItemStack slotItem = menu.getItemInSlot(slot);
             if (slotItem != null) {
+                // a compressed table waits until every slot is full enough for the whole batch
+                if (!CompressedUtils.isFullEnough(slotItem, multiplier, true)) {
+                    return 0;
+                }
                 available = Math.min(available, slotItem.getAmount() - 1);
             }
         }
