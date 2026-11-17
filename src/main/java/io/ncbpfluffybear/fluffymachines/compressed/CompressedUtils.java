@@ -30,7 +30,7 @@ public final class CompressedUtils {
      */
     @Nonnull
     public static String name(@Nonnull String baseName, int multiplier) {
-        return multiplier > 1 ? baseName + " &a(x" + multiplier + ")" : baseName;
+        return multiplier > 1 ? baseName + " &a(" + multiplier + ")" : baseName;
     }
 
     /**
