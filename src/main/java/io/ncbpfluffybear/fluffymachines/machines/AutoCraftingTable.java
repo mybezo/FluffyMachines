@@ -8,6 +8,7 @@ import io.github.thebusybiscuit.slimefun4.api.items.SlimefunItem;
 import io.github.thebusybiscuit.slimefun4.api.items.SlimefunItemStack;
 import io.github.thebusybiscuit.slimefun4.api.recipes.RecipeType;
 import io.github.thebusybiscuit.slimefun4.core.attributes.EnergyNetComponent;
+import io.github.thebusybiscuit.slimefun4.core.attributes.RecipeDisplayItem;
 import io.github.thebusybiscuit.slimefun4.core.handlers.BlockBreakHandler;
 import io.github.thebusybiscuit.slimefun4.core.handlers.BlockPlaceHandler;
 import io.github.thebusybiscuit.slimefun4.core.networks.energy.EnergyNetComponentType;
@@ -15,6 +16,8 @@ import io.github.thebusybiscuit.slimefun4.libraries.dough.collections.Pair;
 import io.github.thebusybiscuit.slimefun4.libraries.dough.items.CustomItemStack;
 import io.github.thebusybiscuit.slimefun4.utils.ChestMenuUtils;
 import io.ncbpfluffybear.fluffymachines.FluffyMachines;
+import io.ncbpfluffybear.fluffymachines.compressed.Compressible;
+import io.ncbpfluffybear.fluffymachines.compressed.CompressedUtils;
 import io.ncbpfluffybear.fluffymachines.utils.Utils;
 import me.mrCookieSlime.CSCoreLibPlugin.general.Inventory.ChestMenu.AdvancedMenuClickHandler;
 import me.mrCookieSlime.CSCoreLibPlugin.general.Inventory.ClickAction;
@@ -46,7 +49,7 @@ import java.util.List;
  *
  * @author NCBPFluffyBear
  */
-public class AutoCraftingTable extends SlimefunItem implements EnergyNetComponent {
+public class AutoCraftingTable extends SlimefunItem implements EnergyNetComponent, Compressible, RecipeDisplayItem {
 
     public static final int ENERGY_CONSUMPTION = 128;
     public static final int CAPACITY = ENERGY_CONSUMPTION * 3;
@@ -57,10 +60,20 @@ public class AutoCraftingTable extends SlimefunItem implements EnergyNetComponen
     private final int[] outputBorder = {32, 33, 34, 35, 41, 44, 50, 51, 52, 53};
     private final int[] keyBorder = {6, 7, 8, 15, 17, 24, 25, 26};
 
-    public AutoCraftingTable(ItemGroup category, SlimefunItemStack item, RecipeType recipeType, ItemStack[] recipe) {
-        super(category, item, recipeType, recipe);
+    private final int multiplier;
 
-        new BlockMenuPreset(getId(), "&6Auto Crafting Table") {
+    public AutoCraftingTable(ItemGroup category, SlimefunItemStack item, RecipeType recipeType, ItemStack[] recipe) {
+        this(category, item, recipeType, recipe, 1);
+    }
+
+    /**
+     * @param multiplier how many machines are combined into this one (1 for the normal machine)
+     */
+    public AutoCraftingTable(ItemGroup category, SlimefunItemStack item, RecipeType recipeType, ItemStack[] recipe, int multiplier) {
+        super(category, item, recipeType, recipe);
+        this.multiplier = multiplier;
+
+        new BlockMenuPreset(getId(), CompressedUtils.name("&6Auto Crafting Table", multiplier)) {
 
             @Override
             public void init() {
@@ -242,11 +255,25 @@ public class AutoCraftingTable extends SlimefunItem implements EnergyNetComponen
 
     @Override
     public int getCapacity() {
-        return CAPACITY;
+        return CompressedUtils.scale(CAPACITY, multiplier);
     }
 
+    /**
+     * @return the energy used by one craft
+     */
     public int getEnergyConsumption() {
         return ENERGY_CONSUMPTION;
+    }
+
+    @Override
+    public int getMultiplier() {
+        return multiplier;
+    }
+
+    @Nonnull
+    @Override
+    public List<ItemStack> getDisplayRecipes() {
+        return CompressedUtils.displayRecipes(multiplier);
     }
 
     @Override
@@ -390,7 +417,7 @@ public class AutoCraftingTable extends SlimefunItem implements EnergyNetComponen
 
                 // We found the entire recipe! No need to pass on.
                 if (!passOn) {
-                    craft(menu, recipe.getFirstValue().clone());
+                    craft(block, menu, recipe.getFirstValue().clone());
                     return;
                 }
             }
@@ -429,7 +456,7 @@ public class AutoCraftingTable extends SlimefunItem implements EnergyNetComponen
                                 new CustomItemStack(new ItemStack(Material.GREEN_STAINED_GLASS_PANE),
                                         "&a&lCrafting"));
                     }
-                    craft(menu, recipe.getFirstValue().clone());
+                    craft(block, menu, recipe.getFirstValue().clone());
                     return;
 
                 } else {
@@ -448,9 +475,14 @@ public class AutoCraftingTable extends SlimefunItem implements EnergyNetComponen
         }
     }
 
-    private void craft(BlockMenu menu, ItemStack item) {
-        if (!menu.fits(item, getOutputSlots())) {
-            if (menu.hasViewer()) {
+    private void craft(Block block, BlockMenu menu, ItemStack item) {
+        // A compressed table crafts as many times as the inputs, the energy and the output space allow
+        int times = Math.min(multiplier, getAvailableCrafts(menu));
+        times = CompressedUtils.affordable(getCharge(block.getLocation()), getEnergyConsumption(), times);
+        int fitting = CompressedUtils.maxFitting(menu, item, times, getOutputSlots());
+
+        if (fitting <= 0) {
+            if (times > 0 && menu.hasViewer()) {
                 menu.replaceExistingItem(statusSlot, new CustomItemStack(new ItemStack(Material.RED_STAINED_GLASS_PANE),
                         "&c&lOutput Full"));
             }
@@ -465,11 +497,26 @@ public class AutoCraftingTable extends SlimefunItem implements EnergyNetComponen
 
         for (int slot : getInputSlots()) {
             if (menu.getItemInSlot(slot) != null) {
-                menu.consumeItem(slot, 1);
+                menu.consumeItem(slot, fitting);
             }
         }
 
-        menu.pushItem(item, getOutputSlots());
+        CompressedUtils.pushInStacks(menu, item, fitting, getOutputSlots());
+        removeCharge(block.getLocation(), getEnergyConsumption() * fitting);
+    }
+
+    /**
+     * How many crafts the inputs allow, every slot keeps 1 item as the template.
+     */
+    private int getAvailableCrafts(BlockMenu menu) {
+        int available = Integer.MAX_VALUE;
+        for (int slot : getInputSlots()) {
+            ItemStack slotItem = menu.getItemInSlot(slot);
+            if (slotItem != null) {
+                available = Math.min(available, slotItem.getAmount() - 1);
+            }
+        }
+        return available == Integer.MAX_VALUE ? 0 : available;
     }
 
     public static ItemStack createKeyItem(Material material) {

@@ -17,6 +17,8 @@ import io.github.thebusybiscuit.slimefun4.libraries.dough.collections.Pair;
 import io.github.thebusybiscuit.slimefun4.libraries.dough.items.CustomItemStack;
 import io.github.thebusybiscuit.slimefun4.utils.ChestMenuUtils;
 import io.github.thebusybiscuit.slimefun4.utils.SlimefunUtils;
+import io.ncbpfluffybear.fluffymachines.compressed.Compressible;
+import io.ncbpfluffybear.fluffymachines.compressed.CompressedUtils;
 import io.ncbpfluffybear.fluffymachines.utils.Utils;
 import me.mrCookieSlime.Slimefun.Objects.handlers.BlockTicker;
 import me.mrCookieSlime.Slimefun.api.inventory.BlockMenu;
@@ -43,7 +45,7 @@ import java.util.Map;
  *
  * @author NCBPFluffyBear
  */
-public class SmartFactory extends SlimefunItem implements EnergyNetComponent, RecipeDisplayItem {
+public class SmartFactory extends SlimefunItem implements EnergyNetComponent, RecipeDisplayItem, Compressible {
 
     private static final int[] BORDER = new int[] {5, 6, 7, 8, 41, 42, 44, 50, 51, 52, 53};
     private static final int[] BORDER_IN = new int[] {0, 1, 2, 3, 4, 9, 13, 18, 22, 27, 31, 36, 40, 45, 46, 47, 48, 49};
@@ -78,8 +80,18 @@ public class SmartFactory extends SlimefunItem implements EnergyNetComponent, Re
 
     private final Map<SlimefunItem, List<ItemStack[]>> ITEM_RECIPES = new HashMap<>(); // Items may have multiple recipe variations
 
+    private final int multiplier;
+
     public SmartFactory(ItemGroup itemGroup, SlimefunItemStack item, RecipeType recipeType, ItemStack[] recipe) {
+        this(itemGroup, item, recipeType, recipe, 1);
+    }
+
+    /**
+     * @param multiplier how many machines are combined into this one (1 for the normal machine)
+     */
+    public SmartFactory(ItemGroup itemGroup, SlimefunItemStack item, RecipeType recipeType, ItemStack[] recipe, int multiplier) {
         super(itemGroup, item, recipeType, recipe);
+        this.multiplier = multiplier;
 
         for (SlimefunItemStack sfItem : ACCEPTED_ITEMS) {
             List<ItemStack[]> variationList = new ArrayList<>();
@@ -107,7 +119,7 @@ public class SmartFactory extends SlimefunItem implements EnergyNetComponent, Re
     }
 
     private void buildPreset() {
-        new BlockMenuPreset(this.getId(), "&cSmart Factory") {
+        new BlockMenuPreset(this.getId(), CompressedUtils.name("&cSmart Factory", multiplier)) {
             @Override
             public void init() {
                 ChestMenuUtils.drawBackground(this, BORDER);
@@ -137,7 +149,7 @@ public class SmartFactory extends SlimefunItem implements EnergyNetComponent, Re
                         "&cSneak and Right Click the factory", "&cwith a supported resource to set the recipe"
                     ));
                 } else {
-                    menu.replaceExistingItem(RECIPE_SLOT, getDisplayItem(recipe, getDisplayRecipes()));
+                    menu.replaceExistingItem(RECIPE_SLOT, getDisplayItem(recipe, getRecipeDisplays()));
                 }
             }
 
@@ -212,6 +224,10 @@ public class SmartFactory extends SlimefunItem implements EnergyNetComponent, Re
     }
 
     protected void tick(Block b) {
+        if (isCompressed()) {
+            compressedTick(b);
+            return;
+        }
 
         // Check if power is sufficient
         if (getCharge(b.getLocation()) < getEnergyConsumption()) {
@@ -297,6 +313,111 @@ public class SmartFactory extends SlimefunItem implements EnergyNetComponent, Re
         }
 
         return null;
+    }
+
+    /**
+     * Same speed as the normal factory, but every finished progress produces up to {@code multiplier} items.
+     * The amount is limited by the ingredients (taken from any input slots), the output space and the energy,
+     * and energy is only used for that amount.
+     */
+    private void compressedTick(Block b) {
+        int energyPerItem = getEnergyConsumption();
+        int charge = getCharge(b.getLocation());
+        if (charge < energyPerItem) {
+            return;
+        }
+
+        BlockMenu inv = StorageCacheUtils.getMenu(b.getLocation());
+        final BlockPosition pos = new BlockPosition(b.getWorld(), b.getX(), b.getY(), b.getZ());
+        int currentProgress = progress.getOrDefault(pos, 0);
+
+        SlimefunItem key = SlimefunItem.getByItem(inv.getItemInSlot(RECIPE_SLOT));
+        List<ItemStack[]> variations = key == null ? null : ITEM_RECIPES.get(key);
+        ItemStack[] variation = null;
+        int amount = 0;
+
+        if (variations != null) {
+            for (ItemStack[] candidate : variations) {
+                int available = countCraftable(inv, candidate);
+                if (available > 0) {
+                    variation = candidate;
+                    amount = available;
+                    break;
+                }
+            }
+        }
+
+        if (variation != null) {
+            amount = CompressedUtils.affordable(charge, energyPerItem, Math.min(multiplier, amount));
+            amount = CompressedUtils.maxFitting(inv, key.getItem(), amount, getOutputSlots());
+        }
+
+        if (variation == null || amount <= 0) {
+            resetProgress(pos, inv);
+            return;
+        }
+
+        // Countdown progress
+        if (currentProgress < PROCESS_TIME_TICKS) {
+            progress.put(pos, ++currentProgress);
+
+            ChestMenuUtils.updateProgressbar(inv, PROGRESS_SLOT, PROCESS_TIME_TICKS - currentProgress,
+                    PROCESS_TIME_TICKS, PROGRESS_ITEM);
+
+            removeCharge(b.getLocation(), energyPerItem * amount);
+            return;
+        }
+
+        CompressedUtils.pushInStacks(inv, key.getItem().clone(), amount, getOutputSlots());
+        for (ItemStack recipeItem : variation) {
+            consumeIngredient(inv, recipeItem, recipeItem.getAmount() * amount);
+        }
+
+        resetProgress(pos, inv);
+    }
+
+    /**
+     * How many items the ingredients in all the input slots can make.
+     * Misc items keep 1 in every slot as the template, coal can be used up.
+     */
+    private int countCraftable(BlockMenu inv, ItemStack[] variation) {
+        int craftable = Integer.MAX_VALUE;
+        for (ItemStack recipeItem : variation) {
+            long usable = 0;
+            for (int slot : getInputSlots()) {
+                ItemStack slotItem = inv.getItemInSlot(slot);
+                if (slotItem != null && SlimefunUtils.isItemSimilar(recipeItem, slotItem, true, false)) {
+                    usable += getUsableAmount(recipeItem, slotItem);
+                }
+            }
+
+            craftable = (int) Math.min(craftable, usable / recipeItem.getAmount());
+            if (craftable == 0) {
+                return 0;
+            }
+        }
+        return craftable == Integer.MAX_VALUE ? 0 : craftable;
+    }
+
+    private void consumeIngredient(BlockMenu inv, ItemStack recipeItem, int needed) {
+        for (int slot : getInputSlots()) {
+            if (needed <= 0) {
+                return;
+            }
+
+            ItemStack slotItem = inv.getItemInSlot(slot);
+            if (slotItem != null && SlimefunUtils.isItemSimilar(recipeItem, slotItem, true, false)) {
+                int taken = Math.min(needed, getUsableAmount(recipeItem, slotItem));
+                if (taken > 0) {
+                    inv.consumeItem(slot, taken);
+                    needed -= taken;
+                }
+            }
+        }
+    }
+
+    private static int getUsableAmount(ItemStack recipeItem, ItemStack slotItem) {
+        return recipeItem.getType() == Material.COAL ? slotItem.getAmount() : slotItem.getAmount() - 1;
     }
 
     private void craft(Block b) {
@@ -413,6 +534,21 @@ public class SmartFactory extends SlimefunItem implements EnergyNetComponent, Re
     @Nonnull
     @Override
     public List<ItemStack> getDisplayRecipes() {
+        List<ItemStack> recipes = getRecipeDisplays();
+        if (!isCompressed()) {
+            return recipes;
+        }
+
+        List<ItemStack> withInfo = new ArrayList<>(CompressedUtils.displayRecipes(multiplier));
+        withInfo.addAll(recipes);
+        return withInfo;
+    }
+
+    /**
+     * The accepted resources with their raw ingredients, in the same order as {@link #getAcceptedItems()}.
+     */
+    @Nonnull
+    public List<ItemStack> getRecipeDisplays() {
         List<ItemStack> recipes = new ArrayList<>();
 
         for (SlimefunItemStack sfStack : ACCEPTED_ITEMS) {
@@ -471,6 +607,11 @@ public class SmartFactory extends SlimefunItem implements EnergyNetComponent, Re
 
     @Override
     public int getCapacity() {
-        return getEnergyCapacity();
+        return CompressedUtils.scale(getEnergyCapacity(), multiplier);
+    }
+
+    @Override
+    public int getMultiplier() {
+        return multiplier;
     }
 }

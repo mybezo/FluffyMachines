@@ -16,7 +16,14 @@ import org.bukkit.inventory.ItemStack;
 public class AutoMagicWorkbench extends AutoCrafter {
 
     public AutoMagicWorkbench(ItemGroup category, SlimefunItemStack item, RecipeType recipeType, ItemStack[] recipe) {
-        super(category, item, recipeType, recipe, "&6Auto Magic Workbench", Material.BOOKSHELF, "&6Magic Workbench", RecipeType.MAGIC_WORKBENCH);
+        this(category, item, recipeType, recipe, 1);
+    }
+
+    /**
+     * @param multiplier how many machines are combined into this one (1 for the normal machine)
+     */
+    public AutoMagicWorkbench(ItemGroup category, SlimefunItemStack item, RecipeType recipeType, ItemStack[] recipe, int multiplier) {
+        super(category, item, recipeType, recipe, "&6Auto Magic Workbench", Material.BOOKSHELF, "&6Magic Workbench", RecipeType.MAGIC_WORKBENCH, multiplier);
     }
 
     /**

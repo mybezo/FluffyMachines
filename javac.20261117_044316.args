@@ -1,0 +1,17 @@
+-proc:none
+-d
+/tmp/claude-0/-home-user-FluffyMachines/b9358a8f-bd36-5695-8161-946b841e9704/scratchpad/out
+src/main/java/io/ncbpfluffybear/fluffymachines/FluffyItemSetup.java
+src/main/java/io/ncbpfluffybear/fluffymachines/FluffyMachines.java
+src/main/java/io/ncbpfluffybear/fluffymachines/compressed/CompressedMachineSetup.java
+src/main/java/io/ncbpfluffybear/fluffymachines/compressed/CompressedUtils.java
+src/main/java/io/ncbpfluffybear/fluffymachines/compressed/Compressible.java
+src/main/java/io/ncbpfluffybear/fluffymachines/compressed/HiddenItemGroup.java
+src/main/java/io/ncbpfluffybear/fluffymachines/listeners/KeyedCrafterListener.java
+src/main/java/io/ncbpfluffybear/fluffymachines/machines/AutoAncientAltar.java
+src/main/java/io/ncbpfluffybear/fluffymachines/machines/AutoCraftingTable.java
+src/main/java/io/ncbpfluffybear/fluffymachines/machines/AutoMagicWorkbench.java
+src/main/java/io/ncbpfluffybear/fluffymachines/machines/AutoTableSaw.java
+src/main/java/io/ncbpfluffybear/fluffymachines/machines/SmartFactory.java
+src/main/java/io/ncbpfluffybear/fluffymachines/objects/AutoCrafter.java
+src/main/java/io/ncbpfluffybear/fluffymachines/objects/FluffyNestedGroup.java

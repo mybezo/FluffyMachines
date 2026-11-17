@@ -4,7 +4,6 @@ import com.xzavier0722.mc.plugin.slimefun4.storage.util.StorageCacheUtils;
 import io.github.thebusybiscuit.slimefun4.api.events.PlayerRightClickEvent;
 import io.github.thebusybiscuit.slimefun4.api.items.SlimefunItem;
 import io.github.thebusybiscuit.slimefun4.api.items.SlimefunItemStack;
-import io.github.thebusybiscuit.slimefun4.core.attributes.RecipeDisplayItem;
 import io.github.thebusybiscuit.slimefun4.implementation.SlimefunItems;
 import io.ncbpfluffybear.fluffymachines.machines.AutoCraftingTable;
 import io.ncbpfluffybear.fluffymachines.machines.SmartFactory;
@@ -61,7 +60,7 @@ public class KeyedCrafterListener implements Listener {
 
                     StorageCacheUtils.setData(b.getLocation(), "recipe", key.getId());
                     StorageCacheUtils.getMenu(b.getLocation()).replaceExistingItem(SmartFactory.RECIPE_SLOT,
-                            SmartFactory.getDisplayItem(key, ((RecipeDisplayItem) sfBlock).getDisplayRecipes())
+                            SmartFactory.getDisplayItem(key, ((SmartFactory) sfBlock).getRecipeDisplays())
                     );
                     Utils.send(p, "&aTarget recipe set to " + key.getItemName());
                 } else {

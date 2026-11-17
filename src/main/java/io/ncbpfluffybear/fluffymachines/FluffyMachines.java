@@ -8,6 +8,7 @@ import io.github.thebusybiscuit.slimefun4.api.player.PlayerProfile;
 import io.github.thebusybiscuit.slimefun4.implementation.Slimefun;
 import io.github.thebusybiscuit.slimefun4.libraries.dough.collections.Pair;
 import io.github.thebusybiscuit.slimefun4.libraries.dough.config.Config;
+import io.ncbpfluffybear.fluffymachines.compressed.CompressedMachineSetup;
 import io.ncbpfluffybear.fluffymachines.listeners.KeyedCrafterListener;
 import io.ncbpfluffybear.fluffymachines.utils.Events;
 import io.ncbpfluffybear.fluffymachines.utils.McMMOEvents;
@@ -109,6 +110,8 @@ public class FluffyMachines extends JavaPlugin implements SlimefunAddon {
         // Registering Items
         FluffyItemSetup.setup(this);
         FluffyItemSetup.setupBarrels(this);
+        // after the normal items, the compressed machines are built from them
+        CompressedMachineSetup.setup(this);
 
         WikiUtils.setupJson(this);
 

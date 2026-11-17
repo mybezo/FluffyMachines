@@ -58,6 +58,22 @@ Drop the jar into your `plugins` folder together with the required plugins above
 | **Electric Dust Recycler** | Turns eight of the same dust back into one sifted ore |
 | **Advanced Charging Bench** + **ACB Upgrade Card** | A charging bench that can be upgraded with upgrade cards (up to tier 100) |
 
+### Compressed Machines
+
+Several machines combined into one block, in four tiers: **x8, x16, x32 and x64**. Open them from
+*Fluffy Machines > Compressed Items* in the guide (only the highest enabled tier is listed there).
+
+| Compressed machine | What is multiplied |
+|---|---|
+| **Auto Crafting Table**, **Auto Magic Workbench**, **Auto Ancient Altar** | Crafts up to N times per tick, as far as the inputs (every slot keeps 1 item as the template), the energy and the output space allow |
+| **Auto Table Saw** | Saws up to N items per tick |
+| **Smart Factory** | Same speed, every finished cycle makes up to N items, using ingredients from any input slots |
+
+- Recipes (Compressor): x8 = 8 normal machines, x16 = 2 x8, x32 = 2 x16, x64 = 2 x32.
+- Energy is only used for what is actually processed. The energy buffer is multiplied too.
+- Outputs are always split into valid stacks; nothing is made when there is no room for it.
+- Settings are in `plugins/FluffyMachines/compressed.yml` (enable all, each tier, each machine). Restart to apply.
+
 ### Generators
 
 | Generator | What it does |

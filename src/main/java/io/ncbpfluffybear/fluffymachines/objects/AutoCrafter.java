@@ -8,6 +8,7 @@ import io.github.thebusybiscuit.slimefun4.api.items.SlimefunItem;
 import io.github.thebusybiscuit.slimefun4.api.items.SlimefunItemStack;
 import io.github.thebusybiscuit.slimefun4.api.recipes.RecipeType;
 import io.github.thebusybiscuit.slimefun4.core.attributes.EnergyNetComponent;
+import io.github.thebusybiscuit.slimefun4.core.attributes.RecipeDisplayItem;
 import io.github.thebusybiscuit.slimefun4.core.handlers.BlockBreakHandler;
 import io.github.thebusybiscuit.slimefun4.core.handlers.BlockPlaceHandler;
 import io.github.thebusybiscuit.slimefun4.core.multiblocks.MultiBlockMachine;
@@ -16,6 +17,8 @@ import io.github.thebusybiscuit.slimefun4.implementation.Slimefun;
 import io.github.thebusybiscuit.slimefun4.libraries.dough.items.CustomItemStack;
 import io.github.thebusybiscuit.slimefun4.libraries.dough.protection.Interaction;
 import io.github.thebusybiscuit.slimefun4.utils.SlimefunUtils;
+import io.ncbpfluffybear.fluffymachines.compressed.Compressible;
+import io.ncbpfluffybear.fluffymachines.compressed.CompressedUtils;
 import me.mrCookieSlime.CSCoreLibPlugin.general.Inventory.ChestMenu;
 import me.mrCookieSlime.CSCoreLibPlugin.general.Inventory.ClickAction;
 import me.mrCookieSlime.Slimefun.Objects.handlers.BlockTicker;
@@ -36,7 +39,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 
-public class AutoCrafter extends SlimefunItem implements EnergyNetComponent {
+public class AutoCrafter extends SlimefunItem implements EnergyNetComponent, Compressible, RecipeDisplayItem {
 
     private static final String WIKI_PAGE = "machines/auto-crafters";
 
@@ -50,15 +53,24 @@ public class AutoCrafter extends SlimefunItem implements EnergyNetComponent {
     private final String machineName;
     private final Material material;
     private final MultiBlockMachine mblock;
+    private final int multiplier;
 
     public AutoCrafter(ItemGroup category, SlimefunItemStack item, RecipeType recipeType, ItemStack[] recipe, String displayName, Material material, String machineName, RecipeType machineRecipes) {
+        this(category, item, recipeType, recipe, displayName, material, machineName, machineRecipes, 1);
+    }
+
+    /**
+     * @param multiplier how many machines are combined into this one (1 for the normal machine)
+     */
+    public AutoCrafter(ItemGroup category, SlimefunItemStack item, RecipeType recipeType, ItemStack[] recipe, String displayName, Material material, String machineName, RecipeType machineRecipes, int multiplier) {
         super(category, item, recipeType, recipe);
 
         this.machineName = machineName;
         this.material = material;
         this.mblock = (MultiBlockMachine) machineRecipes.getMachine();
+        this.multiplier = multiplier;
 
-        constructMenu(displayName);
+        constructMenu(CompressedUtils.name(displayName, multiplier));
         addItemHandler(onPlace());
         addItemHandler(onBreak());
     }
@@ -203,12 +215,26 @@ public class AutoCrafter extends SlimefunItem implements EnergyNetComponent {
             (p, slot, item, action) -> false);
     }
 
+    /**
+     * @return the energy used by one craft
+     */
     public int getEnergyConsumption() {
         return ENERGY_CONSUMPTION;
     }
 
     public int getCapacity() {
-        return CAPACITY;
+        return CompressedUtils.scale(CAPACITY, multiplier);
+    }
+
+    @Override
+    public int getMultiplier() {
+        return multiplier;
+    }
+
+    @Nonnull
+    @Override
+    public List<ItemStack> getDisplayRecipes() {
+        return CompressedUtils.displayRecipes(multiplier);
     }
 
     public int[] getInputSlots() {
@@ -270,11 +296,17 @@ public class AutoCrafter extends SlimefunItem implements EnergyNetComponent {
         for (ItemStack[] input : RecipeType.getRecipeInputList(mblock)) {
             if (isCraftable(menu, input)) {
                 ItemStack output = RecipeType.getRecipeOutputList(mblock, input).clone();
-                if (!menu.fits(output, getOutputSlots())) {
+
+                // A compressed crafter crafts as many times as the inputs, the energy and the output space allow
+                int times = Math.min(multiplier, getAvailableCrafts(menu));
+                times = CompressedUtils.affordable(getCharge(block.getLocation()), getEnergyConsumption(), times);
+                times = CompressedUtils.maxFitting(menu, output, times, getOutputSlots());
+                if (times <= 0) {
                     return;
                 }
-                craft(output, menu);
-                removeCharge(block.getLocation(), getEnergyConsumption());
+
+                craft(output, menu, times);
+                removeCharge(block.getLocation(), getEnergyConsumption() * times);
                 return;
             }
         }
@@ -295,16 +327,33 @@ public class AutoCrafter extends SlimefunItem implements EnergyNetComponent {
         return true;
     }
 
-    private void craft(ItemStack output, BlockMenu inv) {
+    /**
+     * How many crafts the inputs allow: a stackable item always keeps 1 in its slot as the template,
+     * an unstackable item is used up.
+     */
+    private int getAvailableCrafts(BlockMenu inv) {
+        int available = Integer.MAX_VALUE;
+        for (int slot : getInputSlots()) {
+            ItemStack item = inv.getItemInSlot(slot);
+            if (item == null || item.getType() == Material.AIR) {
+                continue;
+            }
+            int usable = item.getType().getMaxStackSize() == 1 ? item.getAmount() : item.getAmount() - 1;
+            available = Math.min(available, usable);
+        }
+        return available == Integer.MAX_VALUE ? 0 : available;
+    }
+
+    private void craft(ItemStack output, BlockMenu inv, int times) {
         for (int j = 0; j < 9; j++) {
             ItemStack item = inv.getItemInSlot(getInputSlots()[j]);
 
             if (item != null && item.getType() != Material.AIR) {
-                inv.consumeItem(getInputSlots()[j]);
+                inv.consumeItem(getInputSlots()[j], times);
             }
         }
 
-        inv.pushItem(output, outputSlots);
+        CompressedUtils.pushInStacks(inv, output, times, outputSlots);
     }
 
     static void borders(BlockMenuPreset preset, int[] border, int[] inputBorder, int[] outputBorder) {

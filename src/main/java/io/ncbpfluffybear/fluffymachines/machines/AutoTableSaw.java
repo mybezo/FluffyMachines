@@ -8,6 +8,7 @@ import io.github.thebusybiscuit.slimefun4.api.items.SlimefunItem;
 import io.github.thebusybiscuit.slimefun4.api.items.SlimefunItemStack;
 import io.github.thebusybiscuit.slimefun4.api.recipes.RecipeType;
 import io.github.thebusybiscuit.slimefun4.core.attributes.EnergyNetComponent;
+import io.github.thebusybiscuit.slimefun4.core.attributes.RecipeDisplayItem;
 import io.github.thebusybiscuit.slimefun4.core.handlers.BlockBreakHandler;
 import io.github.thebusybiscuit.slimefun4.core.handlers.BlockPlaceHandler;
 import io.github.thebusybiscuit.slimefun4.core.networks.energy.EnergyNetComponentType;
@@ -17,6 +18,8 @@ import io.github.thebusybiscuit.slimefun4.libraries.dough.items.CustomItemStack;
 import io.github.thebusybiscuit.slimefun4.libraries.dough.protection.Interaction;
 import io.github.thebusybiscuit.slimefun4.utils.ChestMenuUtils;
 import io.github.thebusybiscuit.slimefun4.utils.SlimefunUtils;
+import io.ncbpfluffybear.fluffymachines.compressed.Compressible;
+import io.ncbpfluffybear.fluffymachines.compressed.CompressedUtils;
 import me.mrCookieSlime.Slimefun.Objects.handlers.BlockTicker;
 import me.mrCookieSlime.Slimefun.api.inventory.BlockMenu;
 import me.mrCookieSlime.Slimefun.api.inventory.BlockMenuPreset;
@@ -43,7 +46,7 @@ import java.util.Optional;
  *
  * @author NCBPFluffyBear
  */
-public class AutoTableSaw extends SlimefunItem implements EnergyNetComponent {
+public class AutoTableSaw extends SlimefunItem implements EnergyNetComponent, Compressible, RecipeDisplayItem {
 
     public static final int ENERGY_CONSUMPTION = 128;
     public static final int CAPACITY = ENERGY_CONSUMPTION * 3;
@@ -55,9 +58,18 @@ public class AutoTableSaw extends SlimefunItem implements EnergyNetComponent {
     private final int[] outputSlots = {33, 34};
 
     private final Map<ItemStack, ItemStack> tableSawRecipes = new HashMap<>();
+    private final int multiplier;
 
     public AutoTableSaw(ItemGroup category, SlimefunItemStack item, RecipeType recipeType, ItemStack[] recipe) {
+        this(category, item, recipeType, recipe, 1);
+    }
+
+    /**
+     * @param multiplier how many machines are combined into this one (1 for the normal machine)
+     */
+    public AutoTableSaw(ItemGroup category, SlimefunItemStack item, RecipeType recipeType, ItemStack[] recipe, int multiplier) {
         super(category, item, recipeType, recipe);
+        this.multiplier = multiplier;
 
         for (Material log : Tag.LOGS.getValues()) {
             getPlanks(log).ifPresent(material -> tableSawRecipes.put(new ItemStack(log), new ItemStack(material, 8)));
@@ -67,7 +79,7 @@ public class AutoTableSaw extends SlimefunItem implements EnergyNetComponent {
             tableSawRecipes.put(new ItemStack(plank), new ItemStack(Material.STICK, 4));
         }
 
-        new BlockMenuPreset(getId(), "&6Auto Table Saw") {
+        new BlockMenuPreset(getId(), CompressedUtils.name("&6Auto Table Saw", multiplier)) {
 
             @Override
             public void init() {
@@ -174,11 +186,25 @@ public class AutoTableSaw extends SlimefunItem implements EnergyNetComponent {
 
     @Override
     public int getCapacity() {
-        return CAPACITY;
+        return CompressedUtils.scale(CAPACITY, multiplier);
     }
 
+    /**
+     * @return the energy used by one operation
+     */
     public int getEnergyConsumption() {
         return ENERGY_CONSUMPTION;
+    }
+
+    @Override
+    public int getMultiplier() {
+        return multiplier;
+    }
+
+    @Nonnull
+    @Override
+    public List<ItemStack> getDisplayRecipes() {
+        return CompressedUtils.displayRecipes(multiplier);
     }
 
     @Override
@@ -207,15 +233,29 @@ public class AutoTableSaw extends SlimefunItem implements EnergyNetComponent {
         }
 
         BlockMenu menu = StorageCacheUtils.getMenu(block.getLocation());
-        tableSawRecipes.forEach((input, output) -> {
-            if (menu.getItemInSlot(inputSlots[0]) != null
-                && SlimefunUtils.isItemSimilar(menu.getItemInSlot(inputSlots[0]), input, true, false)
-                && menu.fits(output, outputSlots)) {
+        ItemStack inputItem = menu.getItemInSlot(inputSlots[0]);
+        if (inputItem == null) {
+            return;
+        }
 
-                menu.consumeItem(inputSlots[0]);
-                menu.pushItem(output.clone(), outputSlots);
+        for (Map.Entry<ItemStack, ItemStack> recipe : tableSawRecipes.entrySet()) {
+            if (!SlimefunUtils.isItemSimilar(inputItem, recipe.getKey(), true, false)) {
+                continue;
             }
-        });
+
+            // A compressed saw processes as many items as the input, the energy and the output space allow
+            ItemStack output = recipe.getValue();
+            int times = Math.min(multiplier, inputItem.getAmount());
+            times = CompressedUtils.affordable(getCharge(block.getLocation()), getEnergyConsumption(), times);
+            times = CompressedUtils.maxFitting(menu, output, times, outputSlots);
+
+            if (times > 0) {
+                menu.consumeItem(inputSlots[0], times);
+                CompressedUtils.pushInStacks(menu, output, times, outputSlots);
+                removeCharge(block.getLocation(), getEnergyConsumption() * times);
+            }
+            return;
+        }
     }
 
     /**

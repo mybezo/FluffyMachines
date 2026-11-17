@@ -8,6 +8,7 @@ import io.github.thebusybiscuit.slimefun4.api.items.SlimefunItem;
 import io.github.thebusybiscuit.slimefun4.api.items.SlimefunItemStack;
 import io.github.thebusybiscuit.slimefun4.api.recipes.RecipeType;
 import io.github.thebusybiscuit.slimefun4.core.attributes.EnergyNetComponent;
+import io.github.thebusybiscuit.slimefun4.core.attributes.RecipeDisplayItem;
 import io.github.thebusybiscuit.slimefun4.core.handlers.BlockBreakHandler;
 import io.github.thebusybiscuit.slimefun4.core.handlers.BlockPlaceHandler;
 import io.github.thebusybiscuit.slimefun4.core.networks.energy.EnergyNetComponentType;
@@ -20,6 +21,8 @@ import io.github.thebusybiscuit.slimefun4.implementation.items.blocks.RepairedSp
 import io.github.thebusybiscuit.slimefun4.libraries.dough.items.CustomItemStack;
 import io.github.thebusybiscuit.slimefun4.libraries.dough.protection.Interaction;
 import io.github.thebusybiscuit.slimefun4.utils.SlimefunUtils;
+import io.ncbpfluffybear.fluffymachines.compressed.Compressible;
+import io.ncbpfluffybear.fluffymachines.compressed.CompressedUtils;
 import io.ncbpfluffybear.fluffymachines.utils.Constants;
 import me.mrCookieSlime.CSCoreLibPlugin.general.Inventory.ChestMenu.AdvancedMenuClickHandler;
 import me.mrCookieSlime.CSCoreLibPlugin.general.Inventory.ClickAction;
@@ -50,7 +53,7 @@ import java.util.Optional;
  *
  * @author NCBPFluffyBear
  */
-public class AutoAncientAltar extends SlimefunItem implements EnergyNetComponent {
+public class AutoAncientAltar extends SlimefunItem implements EnergyNetComponent, Compressible, RecipeDisplayItem {
 
     public static final int ENERGY_CONSUMPTION = 128;
     public static final int CAPACITY = ENERGY_CONSUMPTION * 3;
@@ -66,10 +69,20 @@ public class AutoAncientAltar extends SlimefunItem implements EnergyNetComponent
     private final List<ItemStack> jarInputs = new ArrayList<>(Arrays.asList(ironBars, earthRune, ironBars, earthRune,
             ironBars, earthRune, ironBars, earthRune));
 
-    public AutoAncientAltar(ItemGroup category, SlimefunItemStack item, RecipeType recipeType, ItemStack[] recipe) {
-        super(category, item, recipeType, recipe);
+    private final int multiplier;
 
-        new BlockMenuPreset(getId(), "&5Auto Ancient Altar") {
+    public AutoAncientAltar(ItemGroup category, SlimefunItemStack item, RecipeType recipeType, ItemStack[] recipe) {
+        this(category, item, recipeType, recipe, 1);
+    }
+
+    /**
+     * @param multiplier how many machines are combined into this one (1 for the normal machine)
+     */
+    public AutoAncientAltar(ItemGroup category, SlimefunItemStack item, RecipeType recipeType, ItemStack[] recipe, int multiplier) {
+        super(category, item, recipeType, recipe);
+        this.multiplier = multiplier;
+
+        new BlockMenuPreset(getId(), CompressedUtils.name("&5Auto Ancient Altar", multiplier)) {
 
             @Override
             public void init() {
@@ -220,12 +233,26 @@ public class AutoAncientAltar extends SlimefunItem implements EnergyNetComponent
                 (p, slot, item, action) -> false);
     }
 
+    /**
+     * @return the energy used by one craft
+     */
     public int getEnergyConsumption() {
         return ENERGY_CONSUMPTION;
     }
 
     public int getCapacity() {
-        return CAPACITY;
+        return CompressedUtils.scale(CAPACITY, multiplier);
+    }
+
+    @Override
+    public int getMultiplier() {
+        return multiplier;
+    }
+
+    @Nonnull
+    @Override
+    public List<ItemStack> getDisplayRecipes() {
+        return CompressedUtils.displayRecipes(multiplier);
     }
 
     public int[] getInputSlots() {
@@ -261,7 +288,7 @@ public class AutoAncientAltar extends SlimefunItem implements EnergyNetComponent
     protected void tick(Block block) {
         SlimefunBlockData blockData = StorageCacheUtils.getBlock(block.getLocation());
         String craftOnce = blockData.getData("craftOnce");
-        if (String.valueOf(false).equals(blockData.getData("enabled")) && craftOnce.equals("false")) {
+        if (String.valueOf(false).equals(blockData.getData("enabled")) && !"true".equals(craftOnce)) {
             return;
         }
 
@@ -287,6 +314,9 @@ public class AutoAncientAltar extends SlimefunItem implements EnergyNetComponent
             }
         }
 
+        // How many crafts the inputs allow: stackable items keep 1 in their slot as the template,
+        // except for "Craft Once", which may use the last item
+        int availableCrafts = Integer.MAX_VALUE;
         for (int slot : getInputSlots()) {
             ItemStack slotItem = menu.getItemInSlot(slot);
             if (slotItem == null) {
@@ -294,11 +324,14 @@ public class AutoAncientAltar extends SlimefunItem implements EnergyNetComponent
             }
 
             Material type = slotItem.getType();
-
-            if (!craftOnce && type.getMaxStackSize() != 1 && slotItem.getAmount() == 1) {
-                return;
-            }
+            boolean keepTemplate = !craftOnce && type.getMaxStackSize() != 1;
+            availableCrafts = Math.min(availableCrafts, keepTemplate ? slotItem.getAmount() - 1 : slotItem.getAmount());
         }
+
+        if (availableCrafts <= 0) {
+            return;
+        }
+        final int crafts = availableCrafts; // used in a lambda below
 
         // Check and append altar items
         for (int i = 0; i < 8; i++) {
@@ -343,11 +376,7 @@ public class AutoAncientAltar extends SlimefunItem implements EnergyNetComponent
                 ItemStack spawnerItem = brokenSpawner.getItemForEntityType(entityType);
 
                 if (pedestalItems.equals(jarInputs)) {
-                    removeCharge(block.getLocation(), ENERGY_CONSUMPTION);
-                    for (int slot : getInputSlots()) {
-                        menu.consumeItem(slot);
-                    }
-                    menu.pushItem(spawnerItem.clone(), getOutputSlots());
+                    craft(block, menu, spawnerItem.clone(), crafts);
                 }
             } catch (IllegalArgumentException ignored) {
             }
@@ -358,13 +387,13 @@ public class AutoAncientAltar extends SlimefunItem implements EnergyNetComponent
             if (result.isPresent()) {
                 RepairedSpawner spawner = (RepairedSpawner) SlimefunItems.REPAIRED_SPAWNER.getItem();
                 ItemStack spawnerResult = spawner.getItemForEntityType(spawner.getEntityType(catalystItem).orElse(EntityType.PIG));
-                craft(block, menu, spawnerResult);
+                craft(block, menu, spawnerResult, crafts);
             }
 
         } else {
 
             Optional<ItemStack> result = checkRecipe(catalyst, pedestalItems);
-            result.ifPresent(itemStack -> craft(block, menu, itemStack));
+            result.ifPresent(itemStack -> craft(block, menu, itemStack, crafts));
 
         }
     }
@@ -381,15 +410,20 @@ public class AutoAncientAltar extends SlimefunItem implements EnergyNetComponent
         return Optional.empty();
     }
 
-    private void craft(Block b, BlockMenu menu, ItemStack result) {
-        if (!menu.fits(result, getOutputSlots())) {
+    private void craft(Block b, BlockMenu menu, ItemStack result, int availableCrafts) {
+        // A compressed altar crafts as many times as the inputs, the energy and the output space allow
+        int times = Math.min(multiplier, availableCrafts);
+        times = CompressedUtils.affordable(getCharge(b.getLocation()), getEnergyConsumption(), times);
+        times = CompressedUtils.maxFitting(menu, result, times, getOutputSlots());
+        if (times <= 0) {
             return;
         }
-        removeCharge(b.getLocation(), ENERGY_CONSUMPTION);
+
+        removeCharge(b.getLocation(), getEnergyConsumption() * times);
         for (int slot : getInputSlots()) {
-            menu.consumeItem(slot);
+            menu.consumeItem(slot, times);
         }
-        menu.pushItem(result, getOutputSlots());
+        CompressedUtils.pushInStacks(menu, result, times, getOutputSlots());
     }
 
     static void borders(BlockMenuPreset preset, int[] border, int[] inputBorder, int[] outputBorder) {

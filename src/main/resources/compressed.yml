@@ -1,0 +1,36 @@
+# Compressed Machines
+# A compressed machine combines several machines into one.
+# Every operation handles up to the multiplier at once (limited by the inputs, the energy and
+# the output space), and energy is only used for what is actually processed.
+#
+# Recipes (Compressor):
+#   x8  = 8 of the original machine
+#   x16 = 2 of the x8 machine
+#   x32 = 2 of the x16 machine
+#   x64 = 2 of the x32 machine
+#
+# Only the highest enabled multiplier is listed in the guide (Fluffy Machines > Compressed Items),
+# the lower multipliers can still be crafted.
+#
+# Changes require a server restart.
+# Missing options are added automatically, existing values are kept.
+
+# Enable/disable all the compressed machines
+enabled: true
+
+# Enable/disable each multiplier.
+# Disabling a multiplier also disables all the multipliers above it,
+# because their recipes need the previous multiplier.
+multipliers:
+  x8: true
+  x16: true
+  x32: true
+  x64: true
+
+# Enable/disable the compressed versions (all multipliers) of each machine
+machines:
+  AUTO_CRAFTING_TABLE: true
+  AUTO_MAGIC_WORKBENCH: true
+  AUTO_ANCIENT_ALTAR: true
+  AUTO_TABLE_SAW: true
+  SMART_FACTORY: true

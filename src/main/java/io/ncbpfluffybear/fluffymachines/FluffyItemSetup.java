@@ -3,11 +3,11 @@ package io.ncbpfluffybear.fluffymachines;
 import io.github.thebusybiscuit.slimefun4.api.items.ItemGroup;
 import io.github.thebusybiscuit.slimefun4.api.items.SlimefunItem;
 import io.github.thebusybiscuit.slimefun4.api.items.SlimefunItemStack;
-import io.github.thebusybiscuit.slimefun4.api.items.groups.NestedItemGroup;
 import io.github.thebusybiscuit.slimefun4.api.items.groups.SubItemGroup;
 import io.github.thebusybiscuit.slimefun4.api.recipes.RecipeType;
 import io.github.thebusybiscuit.slimefun4.implementation.SlimefunItems;
 import io.github.thebusybiscuit.slimefun4.libraries.dough.items.CustomItemStack;
+import io.ncbpfluffybear.fluffymachines.objects.FluffyNestedGroup;
 import io.ncbpfluffybear.fluffymachines.items.Barrel;
 import io.ncbpfluffybear.fluffymachines.items.EnderChestExtractionNode;
 import io.ncbpfluffybear.fluffymachines.items.EnderChestInsertionNode;
@@ -62,9 +62,10 @@ public final class FluffyItemSetup {
     private static final ItemStack brownGlass = new ItemStack(Material.BROWN_STAINED_GLASS);
 
     // ItemGroups
-    private static final NestedItemGroup fluffymachines = new NestedItemGroup(
+    // a nested group that can also show the "Compressed Items" button at a fixed slot
+    private static final FluffyNestedGroup fluffymachines = new FluffyNestedGroup(
         new NamespacedKey(FluffyMachines.getInstance(), "fluffymachines"),
-        new CustomItemStack(Material.SMOKER, "&6Fluffy Machines")
+        new CustomItemStack(Material.SMOKER, "&6Fluffy Machines"), true
     );
 
     private static final ItemGroup generators = new SubItemGroup(
@@ -113,6 +114,11 @@ public final class FluffyItemSetup {
     );
 
     private FluffyItemSetup() {
+    }
+
+    @Nonnull
+    public static FluffyNestedGroup getMainGroup() {
+        return fluffymachines;
     }
 
     public static void setupBarrels(@Nonnull FluffyMachines plugin) {
