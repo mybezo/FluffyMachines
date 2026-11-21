@@ -12,6 +12,8 @@ import me.mrCookieSlime.CSCoreLibPlugin.general.Inventory.ChestMenu;
 import me.mrCookieSlime.Slimefun.api.inventory.BlockMenu;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.Bukkit;
+import org.bukkit.Location;
+import org.bukkit.Particle;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
@@ -131,6 +133,24 @@ public final class Utils {
     public static void giveOrDropItem(Player p, ItemStack toGive) {
         for (ItemStack leftover : p.getInventory().addItem(toGive).values()) {
             p.getWorld().dropItemNaturally(p.getLocation(), leftover);
+        }
+    }
+
+    /**
+     * Shows a particle to a player, adding the data newer Minecraft versions require for some particles
+     * (for example DRAGON_BREATH needs a Float on newer Paper versions). A particle that can not be shown is skipped,
+     * it is only a visual effect and must never break what triggered it.
+     */
+    public static void spawnParticle(Player p, Particle particle, Location location, int count) {
+        try {
+            Class<?> dataType = particle.getDataType();
+            if (dataType == Float.class) {
+                p.spawnParticle(particle, location, count, 0, 0, 0, 1, 1.0F);
+            } else if (dataType == Void.class) {
+                p.spawnParticle(particle, location, count);
+            }
+        } catch (IllegalArgumentException ignored) {
+            // unsupported particle data on this server version
         }
     }
 

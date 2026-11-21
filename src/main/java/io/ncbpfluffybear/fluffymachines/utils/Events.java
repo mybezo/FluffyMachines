@@ -163,7 +163,7 @@ public class Events implements Listener {
                                 p.teleport(destination.add(0.5, 1, 0.5));
 
                                 p.playSound(p.getLocation(), Sound.ITEM_CHORUS_FRUIT_TELEPORT, 0.5F, 0.5F);
-                                p.spawnParticle(Particle.DRAGON_BREATH, p.getLocation(), 10);
+                                Utils.spawnParticle(p, Particle.DRAGON_BREATH, p.getLocation(), 10);
                             }, 1);
                         }, true);
                     } else {
