@@ -101,8 +101,15 @@ public class PortableCharger extends SimpleSlimefunItem<ItemUseHandler> implemen
             inventory.setItem(POWER_SLOT, Utils.buildNonInteractable(Material.GLOWSTONE, "&4Power"));
             updatePowerSlot(inventory, getItemCharge(e.getItem()));
 
-            p.openInventory(inventory);
-            session.task = Bukkit.getScheduler().runTaskTimer(FluffyMachines.getInstance(), session::tick, 20, 20);
+            // open the GUI on the next tick, not inside the click event: opening an inventory while the
+            // interaction is still being handled can be ignored or closed again by the server
+            Bukkit.getScheduler().runTask(FluffyMachines.getInstance(), () -> {
+                if (!p.isOnline()) {
+                    return;
+                }
+                p.openInventory(inventory);
+                session.task = Bukkit.getScheduler().runTaskTimer(FluffyMachines.getInstance(), session::tick, 20, 20);
+            });
         };
     }
 
@@ -143,6 +150,8 @@ public class PortableCharger extends SimpleSlimefunItem<ItemUseHandler> implemen
         private final Inventory inventory;
         private BukkitTask task;
         private String lastMessage;
+        // seconds in a row the GUI was not seen as open, to survive a slow or late open
+        private int notOpenTicks;
 
         private ChargerSession(Player player, int chargerSlot) {
             this.player = player;
@@ -167,11 +176,20 @@ public class PortableCharger extends SimpleSlimefunItem<ItemUseHandler> implemen
          * Runs every second while the GUI is open.
          */
         private void tick() {
-            if (!player.isOnline() || player.getOpenInventory().getTopInventory().getHolder() != this) {
-                // closed without an event (should not happen), give the item back and stop
+            if (!player.isOnline()) {
                 close();
                 return;
             }
+
+            if (player.getOpenInventory().getTopInventory().getHolder() != this) {
+                // The item is given back by the close event. Only when the GUI has not been seen for a while
+                // (it was closed without an event) the session is stopped here.
+                if (++notOpenTicks >= 5) {
+                    close();
+                }
+                return;
+            }
+            notOpenTicks = 0;
 
             ItemStack chargerItem = player.getInventory().getItem(chargerSlot);
             if (!(SlimefunItem.getByItem(chargerItem) instanceof PortableCharger charger)) {
