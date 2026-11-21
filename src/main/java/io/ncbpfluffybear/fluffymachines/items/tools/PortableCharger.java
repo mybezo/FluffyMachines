@@ -1,6 +1,10 @@
 package io.ncbpfluffybear.fluffymachines.items.tools;
 
 
+import io.github.thebusybiscuit.slimefun4.api.items.ItemGroup;
+import io.github.thebusybiscuit.slimefun4.api.items.SlimefunItem;
+import io.github.thebusybiscuit.slimefun4.api.items.SlimefunItemStack;
+import io.github.thebusybiscuit.slimefun4.api.recipes.RecipeType;
 import io.github.thebusybiscuit.slimefun4.core.attributes.Rechargeable;
 import io.github.thebusybiscuit.slimefun4.core.handlers.ItemUseHandler;
 import io.github.thebusybiscuit.slimefun4.implementation.items.SimpleSlimefunItem;
@@ -10,24 +14,24 @@ import io.ncbpfluffybear.fluffymachines.utils.Utils;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
-import io.github.thebusybiscuit.slimefun4.api.recipes.RecipeType;
-import io.github.thebusybiscuit.slimefun4.api.items.ItemGroup;
-import io.github.thebusybiscuit.slimefun4.api.items.SlimefunItem;
-import io.github.thebusybiscuit.slimefun4.api.items.SlimefunItemStack;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.GameMode;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
+import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.inventory.ClickType;
 import org.bukkit.event.inventory.InventoryClickEvent;
+import org.bukkit.event.inventory.InventoryCloseEvent;
+import org.bukkit.event.inventory.InventoryDragEvent;
+import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.Inventory;
+import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
-import org.bukkit.plugin.Plugin;
-import org.bukkit.scheduler.BukkitRunnable;
+import org.bukkit.scheduler.BukkitTask;
 
 import javax.annotation.Nonnull;
 import java.util.ArrayList;
@@ -37,18 +41,26 @@ import java.util.List;
  * The {@link PortableCharger} is an item that opens
  * a portable charging GUI that charges any
  * {@link Rechargeable} item.
+ * <p>
+ * The charger and the charged item are always read from their slots and written back after every
+ * change, so charging works whether the server hands out live items or copies. The item in the
+ * charging slot is given back as soon as the GUI closes (also when the player leaves or the server stops).
  *
  * @author NCBPFluffyBear
  */
-public class PortableCharger extends SimpleSlimefunItem<ItemUseHandler> implements Listener, Rechargeable {
+public class PortableCharger extends SimpleSlimefunItem<ItemUseHandler> implements Rechargeable {
 
-    private final int[] BORDER = {5, 6, 7, 14, 16, 23, 24, 25};
-    private final int POWER_SLOT = 11;
-    private final int CHARGE_SLOT = 15;
-    private final int INV_SIZE = 27;
+    private static final int[] BORDER = {5, 6, 7, 14, 16, 23, 24, 25};
+    private static final int POWER_SLOT = 11;
+    private static final int CHARGE_SLOT = 15;
+    private static final int INV_SIZE = 27;
+    private static final int OFF_HAND_SLOT = 40; // index of the off hand in a PlayerInventory
+
+    // one listener handles the GUIs of all the charger tiers
+    private static boolean listenerRegistered = false;
+
     private final float CHARGE_CAPACITY;
     private final float CHARGE_SPEED;
-    private final Plugin plugin = FluffyMachines.getInstance();
 
     public PortableCharger(ItemGroup category, SlimefunItemStack item, RecipeType recipeType, ItemStack[] recipe,
                            int chargeCapacity, int chargeSpeed) {
@@ -57,7 +69,10 @@ public class PortableCharger extends SimpleSlimefunItem<ItemUseHandler> implemen
         this.CHARGE_CAPACITY = chargeCapacity;
         this.CHARGE_SPEED = chargeSpeed;
 
-        Bukkit.getPluginManager().registerEvents(this, FluffyMachines.getInstance());
+        if (!listenerRegistered) {
+            Bukkit.getPluginManager().registerEvents(new GuiListener(), FluffyMachines.getInstance());
+            listenerRegistered = true;
+        }
     }
 
     @Nonnull
@@ -66,146 +81,47 @@ public class PortableCharger extends SimpleSlimefunItem<ItemUseHandler> implemen
         return e -> {
             e.cancel();
 
-            // Get variables
-            final Player p = e.getPlayer();
-            final ItemStack chargerItem = e.getItem();
-            final Rechargeable charger = (Rechargeable) SlimefunItem.getByItem(chargerItem);
+            Player p = e.getPlayer();
+            int chargerSlot = e.getHand() == EquipmentSlot.OFF_HAND
+                ? OFF_HAND_SLOT : p.getInventory().getHeldItemSlot();
 
-            // Create GUI Items
-            Inventory inventory = Bukkit.createInventory(null, INV_SIZE, ChatColor.GOLD + "Portable Charger");
+            ChargerSession session = new ChargerSession(p, chargerSlot);
+            Inventory inventory = session.getInventory();
 
             ItemStack backgroundItem = Utils.buildNonInteractable(Material.GRAY_STAINED_GLASS_PANE, null);
             ItemStack borderItem = Utils.buildNonInteractable(Material.YELLOW_STAINED_GLASS_PANE, null);
-            ItemStack powerItem = Utils.buildNonInteractable(Material.GLOWSTONE, "&4Power");
 
-            // Build and open GUI
-            for (int i = 0; i < INV_SIZE; i++)
+            for (int i = 0; i < INV_SIZE; i++) {
                 inventory.setItem(i, backgroundItem);
-
-            for (int slot : BORDER)
+            }
+            for (int slot : BORDER) {
                 inventory.setItem(slot, borderItem);
+            }
+            inventory.setItem(CHARGE_SLOT, null);
+            inventory.setItem(POWER_SLOT, Utils.buildNonInteractable(Material.GLOWSTONE, "&4Power"));
+            updatePowerSlot(inventory, getItemCharge(e.getItem()));
 
-            inventory.setItem(POWER_SLOT, powerItem);
-            updateSlot(inventory, POWER_SLOT, "&6&lPower Remaining",
-                "&e" + charger.getItemCharge(chargerItem) + "J");
-            inventory.clear(CHARGE_SLOT);
             p.openInventory(inventory);
-
-            // Task that triggers every second
-            new BukkitRunnable() {
-                // Only tell the player once per state instead of every second
-                private String lastMessage = null;
-
-                private void sendOnce(String message) {
-                    if (!message.equals(lastMessage)) {
-                        Utils.send(p, message);
-                        lastMessage = message;
-                    }
-                }
-
-                public void run() {
-
-                    ItemStack deviceItem = inventory.getItem(CHARGE_SLOT);
-                    SlimefunItem sfItem = SlimefunItem.getByItem(deviceItem);
-
-                    if (sfItem instanceof PortableCharger) {
-                        p.closeInventory();
-                        Utils.send(p, "&cYou can not charge a portable charger");
-                    } else if (sfItem instanceof Rechargeable) {
-                        if (!(SlimefunItem.getByItem(chargerItem) instanceof PortableCharger)) {
-                            // The charger is no longer valid: stop charging, the device is given back below
-                            p.closeInventory();
-                            Utils.send(p, "&cWhere did your portable charger go?");
-                        } else if (inventory.getViewers().contains(p)) {
-                            Rechargeable device = (Rechargeable) sfItem;
-                            float neededCharge = device.getMaxItemCharge(deviceItem)
-                                - device.getItemCharge(deviceItem);
-                            float availableCharge = charger.getItemCharge(chargerItem);
-
-                            // Three different scenarios
-                            if (p.getGameMode() == GameMode.CREATIVE && neededCharge > 0) {
-                                device.setItemCharge(deviceItem, device.getMaxItemCharge(deviceItem));
-
-                            } else if (neededCharge > 0 && availableCharge > 0) {
-                                lastMessage = null;
-
-                                if (neededCharge >= CHARGE_SPEED && availableCharge >= CHARGE_SPEED) {
-                                    transferCharge(charger, chargerItem, device, deviceItem, CHARGE_SPEED);
-
-                                } else {
-                                    transferCharge(charger, chargerItem, device, deviceItem, Math.min(neededCharge,
-                                        availableCharge));
-                                }
-
-                            } else if (neededCharge == 0) {
-                                sendOnce("&cThis item is already full!");
-
-                            } else {
-                                sendOnce("&cYour charger does not have enough power!");
-                            }
-
-                            updateSlot(inventory, POWER_SLOT, "&6&lPower Remaining",
-                                "&e" + charger.getItemCharge(chargerItem) + "J");
-                        }
-                    }
-
-                    // Check if GUI is no longer open
-                    if (!inventory.getViewers().contains(p)) {
-                        cancel();
-
-                        ItemStack forgottenItem = inventory.getItem(CHARGE_SLOT);
-
-                        // Check if player left an item inside
-                        if (forgottenItem != null) {
-                            Utils.send(p, "&cHey! You left something in the charger! Dropping it now...");
-                            Utils.giveOrDropItem(p, forgottenItem);
-                        }
-                    }
-                }
-            }.runTaskTimer(plugin, 0, 20);
+            session.task = Bukkit.getScheduler().runTaskTimer(FluffyMachines.getInstance(), session::tick, 20, 20);
         };
     }
 
-    @EventHandler
-    public void onChargerItemClick(InventoryClickEvent e) {
-        SlimefunItem sfItem1 = SlimefunItem.getByItem(e.getCurrentItem());
-        SlimefunItem sfItem2 = SlimefunItem.getByItem(e.getCursor());
-        // Number key / off-hand swaps move an item without it being the clicked or cursor item
-        ItemStack swapped = e.getHotbarButton() >= 0
-            ? e.getWhoClicked().getInventory().getItem(e.getHotbarButton())
-            : (e.getClick() == ClickType.SWAP_OFFHAND ? e.getWhoClicked().getInventory().getItemInOffHand() : null);
-        SlimefunItem sfItem3 = SlimefunItem.getByItem(swapped);
-        if ((sfItem1 instanceof PortableCharger || sfItem2 instanceof PortableCharger || sfItem3 instanceof PortableCharger)
-            && e.getWhoClicked().getOpenInventory().getTitle().contains("Portable Charger")) {
-            e.setCancelled(true);
+    private static void updatePowerSlot(Inventory inventory, float charge) {
+        ItemStack item = inventory.getItem(POWER_SLOT);
+        if (item == null) {
+            return;
         }
+        ItemMeta meta = item.getItemMeta();
+        meta.setDisplayName(ChatColors.color("&6&lPower Remaining"));
+        List<String> lore = new ArrayList<>();
+        lore.add(ChatColor.translateAlternateColorCodes('&', "&e" + charge + "J"));
+        meta.setLore(lore);
+        item.setItemMeta(meta);
+        inventory.setItem(POWER_SLOT, item);
     }
 
-    public void updateSlot(Inventory inventory, int slot, String name, String... lore) {
-        ItemStack item = inventory.getItem(slot);
-        ItemMeta slotMeta = item.getItemMeta();
-        if (name != null) {
-            slotMeta.setDisplayName(ChatColors.color(name));
-        } else {
-            slotMeta.setDisplayName(" ");
-        }
-
-        if (lore.length > 0) {
-            List<String> lines = new ArrayList<>();
-
-            for (String line : lore) {
-                lines.add(ChatColor.translateAlternateColorCodes('&', line));
-            }
-            slotMeta.setLore(lines);
-        }
-        item.setItemMeta(slotMeta);
-        inventory.setItem(slot, item);
-    }
-
-    public void transferCharge(Rechargeable charger, ItemStack chargerItem, Rechargeable device, ItemStack deviceItem
-        , float charge) {
-        charger.removeItemCharge(chargerItem, charge);
-        device.addItemCharge(deviceItem, charge);
+    private static boolean isCharger(ItemStack item) {
+        return SlimefunItem.getByItem(item) instanceof PortableCharger;
     }
 
     @Override
@@ -216,6 +132,167 @@ public class PortableCharger extends SimpleSlimefunItem<ItemUseHandler> implemen
     @Override
     public boolean isDisenchantable() {
         return false;
+    }
+
+    /**
+     * One open charging GUI. It is the holder of its inventory, so the GUI is recognised without its title.
+     */
+    private static final class ChargerSession implements InventoryHolder {
+        private final Player player;
+        private final int chargerSlot;
+        private final Inventory inventory;
+        private BukkitTask task;
+        private String lastMessage;
+
+        private ChargerSession(Player player, int chargerSlot) {
+            this.player = player;
+            this.chargerSlot = chargerSlot;
+            this.inventory = Bukkit.createInventory(this, INV_SIZE, ChatColor.GOLD + "Portable Charger");
+        }
+
+        @Nonnull
+        @Override
+        public Inventory getInventory() {
+            return inventory;
+        }
+
+        private void sendOnce(String message) {
+            if (!message.equals(lastMessage)) {
+                Utils.send(player, message);
+                lastMessage = message;
+            }
+        }
+
+        /**
+         * Runs every second while the GUI is open.
+         */
+        private void tick() {
+            if (!player.isOnline() || player.getOpenInventory().getTopInventory().getHolder() != this) {
+                // closed without an event (should not happen), give the item back and stop
+                close();
+                return;
+            }
+
+            ItemStack chargerItem = player.getInventory().getItem(chargerSlot);
+            if (!(SlimefunItem.getByItem(chargerItem) instanceof PortableCharger charger)) {
+                Utils.send(player, "&cWhere did your portable charger go?");
+                player.closeInventory();
+                return;
+            }
+
+            ItemStack deviceItem = inventory.getItem(CHARGE_SLOT);
+            SlimefunItem sfDevice = SlimefunItem.getByItem(deviceItem);
+
+            if (sfDevice instanceof PortableCharger) {
+                Utils.send(player, "&cYou can not charge a portable charger");
+                player.closeInventory();
+                return;
+            }
+
+            if (sfDevice instanceof Rechargeable device) {
+                float neededCharge = device.getMaxItemCharge(deviceItem) - device.getItemCharge(deviceItem);
+                float availableCharge = charger.getItemCharge(chargerItem);
+
+                if (player.getGameMode() == GameMode.CREATIVE && neededCharge > 0) {
+                    device.setItemCharge(deviceItem, device.getMaxItemCharge(deviceItem));
+                    inventory.setItem(CHARGE_SLOT, deviceItem);
+
+                } else if (neededCharge > 0 && availableCharge > 0) {
+                    lastMessage = null;
+                    float charge = Math.min(charger.CHARGE_SPEED, Math.min(neededCharge, availableCharge));
+
+                    charger.removeItemCharge(chargerItem, charge);
+                    device.addItemCharge(deviceItem, charge);
+
+                    // write both items back, in case the server gave us copies
+                    player.getInventory().setItem(chargerSlot, chargerItem);
+                    inventory.setItem(CHARGE_SLOT, deviceItem);
+
+                } else if (neededCharge <= 0) {
+                    sendOnce("&cThis item is already full!");
+
+                } else {
+                    sendOnce("&cYour charger does not have enough power!");
+                }
+            }
+
+            updatePowerSlot(inventory, charger.getItemCharge(chargerItem));
+        }
+
+        /**
+         * Stops charging and gives the item in the charging slot back. Safe to call more than once.
+         */
+        private void close() {
+            if (task != null) {
+                task.cancel();
+                task = null;
+            }
+
+            ItemStack item = inventory.getItem(CHARGE_SLOT);
+            if (item != null && item.getType() != Material.AIR) {
+                inventory.setItem(CHARGE_SLOT, null);
+                Utils.giveOrDropItem(player, item);
+            }
+        }
+    }
+
+    /**
+     * Protects the charging GUI and gives the item back when it closes.
+     */
+    private static final class GuiListener implements Listener {
+
+        @EventHandler(priority = EventPriority.LOWEST)
+        public void onClick(InventoryClickEvent e) {
+            if (!(e.getView().getTopInventory().getHolder() instanceof ChargerSession)) {
+                return;
+            }
+
+            // only the charging slot of the GUI can be used
+            if (e.getClickedInventory() == e.getView().getTopInventory() && e.getSlot() != CHARGE_SLOT) {
+                e.setCancelled(true);
+                return;
+            }
+
+            // the charger must stay where it is while the GUI is open
+            ItemStack swapped = null;
+            if (e.getHotbarButton() >= 0) {
+                swapped = e.getWhoClicked().getInventory().getItem(e.getHotbarButton());
+            } else if (e.getClick() == ClickType.SWAP_OFFHAND) {
+                swapped = e.getWhoClicked().getInventory().getItemInOffHand();
+            }
+
+            if (isCharger(e.getCurrentItem()) || isCharger(e.getCursor()) || isCharger(swapped)
+                || e.getClick() == ClickType.DOUBLE_CLICK) {
+                e.setCancelled(true);
+            }
+        }
+
+        @EventHandler(priority = EventPriority.LOWEST)
+        public void onDrag(InventoryDragEvent e) {
+            if (!(e.getView().getTopInventory().getHolder() instanceof ChargerSession)) {
+                return;
+            }
+
+            if (isCharger(e.getOldCursor())) {
+                e.setCancelled(true);
+                return;
+            }
+
+            for (int slot : e.getRawSlots()) {
+                if (slot < INV_SIZE && slot != CHARGE_SLOT) {
+                    e.setCancelled(true);
+                    return;
+                }
+            }
+        }
+
+        @EventHandler(priority = EventPriority.MONITOR)
+        public void onClose(InventoryCloseEvent e) {
+            // also fires when the player leaves or the server stops, before the player data is saved
+            if (e.getInventory().getHolder() instanceof ChargerSession session) {
+                session.close();
+            }
+        }
     }
 
     @Getter
